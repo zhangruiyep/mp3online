@@ -5,6 +5,8 @@
 #include "lv_ex_data.h"
 #include "lv_demos.h"
 
+extern int bt_pan_thread_create(void);
+
 /**
   * @brief  Main program
   * @param  None
@@ -14,6 +16,8 @@ int main(void)
 {
     rt_err_t ret = RT_EOK;
     rt_uint32_t ms;
+
+    bt_pan_thread_create();
 
     /* init littlevGL */
     ret = littlevgl2rtt_init("lcd");

@@ -16,6 +16,9 @@ PrepareEnv()
 # Add bootloader project
 AddBootLoader(SIFLI_SDK,rtconfig.CHIP)
 
+# Add LCPU project
+AddLCPU(SIFLI_SDK,rtconfig.CHIP,"../../src/lcpu_img.c")
+
 # Set default compile options
 SifliEnv()
 
@@ -26,6 +29,9 @@ env = GetCurrentEnv()
 
 # Build application.
 DoBuilding(TARGET, objs)
+
+if GetDepend('ENABLE_DFU'):
+    AddDFU(SIFLI_SDK)
 
 # Add flash table buld.
 AddFTAB(SIFLI_SDK,rtconfig.CHIP)

@@ -1,0 +1,8 @@
+import os
+from building import *
+
+# Add source code
+src = Glob('*.c')
+group = DefineGroup('BT_PAN', src, depend = ['CFG_PAN'])
+
+Return('group')
