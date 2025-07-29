@@ -1,6 +1,15 @@
 #APP specific configuration.
+config BF0_HCPU
+    bool
+    default y
+
 config CUSTOM_MEM_MAP
     bool 
 	select custom_mem_map
 	default y if !SOC_SIMULATOR
+	
+config ENABLE_DFU
+    bool "enable dfu and add dfu sub-project"
+	default n
+
 rsource "../src/Kconfig"

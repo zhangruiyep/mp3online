@@ -5,21 +5,6 @@
 #include "lv_ex_data.h"
 #include "lv_demos.h"
 
-#ifdef  LV_USE_DEMO_WIDGETS
-    #define lv_demo_main lv_demo_widgets
-#elif   defined(LV_USE_DEMO_BENCHMARK)
-    #define lv_demo_main lv_demo_benchmark
-#elif   defined(LV_USE_DEMO_KEYPAD_AND_ENCODER)
-    #define lv_demo_main lv_demo_keypad_encoder
-#elif   defined(LV_USE_DEMO_MUSIC)
-    #define lv_demo_main lv_demo_music
-#elif   defined(LV_USE_DEMO_STRESS)
-    #define lv_demo_main  lv_demo_stress
-#else
-    #error "Select a demo application to start"
-#endif
-
-
 /**
   * @brief  Main program
   * @param  None
@@ -38,7 +23,7 @@ int main(void)
     }
     lv_ex_data_pool_init();
 
-    lv_demo_main();
+    lv_demo_music();
 
     while (1)
     {
