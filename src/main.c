@@ -6,6 +6,7 @@
 #include "lv_demos.h"
 
 extern int bt_pan_thread_create(void);
+extern rt_err_t mp3_comm_init(void);
 
 /**
   * @brief  Main program
@@ -17,7 +18,11 @@ int main(void)
     rt_err_t ret = RT_EOK;
     rt_uint32_t ms;
 
+    /* BT PAN thread */
     bt_pan_thread_create();
+
+    /* MP3 thread */
+    mp3_comm_init();
 
     /* init littlevGL */
     ret = littlevgl2rtt_init("lcd");

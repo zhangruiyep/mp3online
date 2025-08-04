@@ -4,12 +4,17 @@ config BF0_HCPU
     default y
 
 config CUSTOM_MEM_MAP
-    bool 
+    bool
 	select custom_mem_map
 	default y if !SOC_SIMULATOR
-	
+
 config ENABLE_DFU
     bool "enable dfu and add dfu sub-project"
 	default n
+
+config MP3_RINGBUFF
+    bool "enable mp3 ringbuff for stream download and play"
+    depends on AUDIO_LOCAL_MUSIC
+    default y
 
 rsource "../src/Kconfig"
