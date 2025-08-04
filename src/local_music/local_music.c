@@ -143,7 +143,7 @@ static int play_callback_func(audio_server_callback_cmt_t cmd, void *callback_us
             rt_kprintf("[LOCAL MUSIC]%s cmd user, data=%x secs=%d\n", __func__, callback_userdata, reserved);
             break;
         case as_callback_cmd_user_read:
-            rt_kprintf("[LOCAL MUSIC]%s user read, seconds=%d\n", __func__, reserved);
+            rt_kprintf("[LOCAL MUSIC]%s user read, read_pos=%d\n", __func__, reserved);
             /* notify mp3 download thread to get more */
             send_read_msg_to_mp3_dl(reserved);
             break;
@@ -188,7 +188,7 @@ void mp3_proc_thread_entry(void *params)
                                         NULL);
             RT_ASSERT(g_mp3_handle);
 
-            audio_server_set_private_volume(AUDIO_TYPE_LOCAL_MUSIC, 4); /* default volume */
+            audio_server_set_private_volume(AUDIO_TYPE_LOCAL_MUSIC, 3); /* default volume */
 
             /* Set loop times. */
             mp3ctrl_ioctl(g_mp3_handle,   /* handle returned by mp3ctrl_open. */

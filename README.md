@@ -1,24 +1,15 @@
-# LVGL v8 Demos
+# MP3 Stream Play Demo
 ## 介绍
-本示例用来演示LVGL V8的官方示例，使用官方提供的demo应用程序。
-可以使用menuconfig来选择演示的demo应用程序。包含的应用程序有：
-- Show some widget 演示lvgl widget的使用
-- Demonstrate the usage of encoder and keyboard 演示键盘
-- Benchmark your system 演示benchmark
-- Stress test for LVGL 压力测试
-- Music player demo 演示音乐播放
+本示例用来演示MP3在线播放。只需要RAM提供一个至多20KB的ringbuffer，即可实现MP3边下载边播放，几MB甚至十几MB大小的文件都可以支持，不需要占用FLASH空间。
+
+基于以下示例程序修改：
+- bt_pan: 提供基于蓝牙PAN的网络接入。修改点：新增mp3_dl.c文件用于MP3下载功能。
+- local_music: 提供MP3播放功能。修改点：默认的文件播放改为BUFFER播放，并支持了ringbuffer。
+- lv_demos: 提供播放器UI。修改点：基于music示例修改了UI，对接播放接口。
 
 ## 工程编译及下载：
-板子工程在project目录下可以通过指定board来编译适应相对board的工程，
-- 比如想编译可以在HDK 563上运行的工程，执行scons --board=eh-lb563即可生成工程
-- 下载可以通过build目录下的download.bat进行，比如同样想烧录上一步生成的563工程，可以执行.\build_eh-lb563\download.bat来通过jlink下载
-- 特别说明下，对于SF32LB52x/SF32LB56x系列会生成额外的uart_download.bat。可以执行该脚本并输入下载UART的端口号执行下载
-模拟器工程在simulator目录下，
-- 使用 scons 进行编译，simulator/msvc_setup.bat文件需要相应修改，和本机MSVC配置对应
-- 也可以使用 scons --target=vs2017 生成 MSVC工程 project.vcxproj, 使用Visual Studio 进行编译。
+由于sifli-sdk MP3播放的BUFFER是完整的文件，不支持边下载边播放，因此修改了部分文件，用于支持ringbuffer方式播放。
+修改的文件在sifli-sdk目录下。
+基于sifli-sdk release-v2.4分支，主要修改了audio_mp3ctrl.c文件，可以搜索MP3_RINGBUFF宏定义，比较修改点合入。
 
-```{note}
-如果不是使用VS2017, 例如 VS2022, 加载工程的时候，会提示升级MSVC SDK, 升级后就可以使用了。
-```
-            
-      
+编译下载方法参考其它示例工程，所需文件在project目录下。

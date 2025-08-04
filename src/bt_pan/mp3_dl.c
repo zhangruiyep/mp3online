@@ -89,7 +89,7 @@ int check_internet_access()
     return r;
 }
 
-int mp3_dl(void)
+void mp3_dl_thread_entry(void *params)
 {
     char *buffer = RT_NULL;
     int resp_status;
@@ -113,7 +113,7 @@ int mp3_dl(void)
     }
 
     /* 拼接 GET 网址 */
-    rt_snprintf(playlist_url, GET_URL_LEN_MAX, "http://music.163.com/song/media/outer/url?id=2639639291.mp3");
+    rt_snprintf(playlist_url, GET_URL_LEN_MAX, "http://music.163.com/song/media/outer/url?id=2155423468.mp3");
 
     /* 创建会话并且设置响应的大小 */
     session = webclient_session_create(GET_HEADER_BUFSZ);
@@ -129,16 +129,6 @@ int mp3_dl(void)
         rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
         goto __exit;
     }
-
-#if 0
-    /* 分配用于存放接收数据的缓冲 */
-    buffer = rt_calloc(1, GET_RESP_BUFSZ);
-    if (buffer == RT_NULL)
-    {
-        rt_kprintf("No memory for data receive buffer!\n");
-        goto __exit;
-    }
-#endif
 
     content_length = webclient_content_length_get(session);
     if (content_length > 0)
@@ -228,13 +218,11 @@ __exit:
     if (session != RT_NULL)
         webclient_close(session);
 
-    //return buffer;
-    return content_length;
-}
+    /* free mq */
+    rt_mq_delete(g_mp3_dl_mq);
+    g_mp3_dl_mq = RT_NULL;
 
-void mp3_dl_thread_entry(void *params)
-{
-    mp3_dl();
+    return;
 }
 
 int mp3_dl_thread_init(void)
@@ -249,22 +237,6 @@ int mp3_dl_thread_init(void)
 
 __ROM_USED void mp3play(int argc, char **argv)
 {
-#if 0
-    //char *mp3_buff = mp3_dl();
-    int len = mp3_dl();
-    if (len)
-    {
-        play_buff(g_mp3_ring_buffer, len);
-    }
-
-
-    if (mp3_buff)
-    {
-        rt_kprintf("mp3_buff:%s\n", mp3_buff);
-        play_buff(mp3_buff, GET_RESP_BUFSZ);
-        rt_free(mp3_buff);
-    }
-#endif
     mp3_dl_thread_init();
     int retry = 30;
     while (retry-- > 0)
