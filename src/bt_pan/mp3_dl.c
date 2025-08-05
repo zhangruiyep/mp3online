@@ -235,7 +235,7 @@ int mp3_dl_thread_init(void)
     RT_ASSERT(RT_EOK == err);
 }
 
-__ROM_USED void mp3play(int argc, char **argv)
+static void mp3play(int argc, char **argv)
 {
     mp3_dl_thread_init();
     int retry = 30;

@@ -9,7 +9,7 @@
 #include "lv_demo_music_main.h"
 #if LV_USE_DEMO_MUSIC
 
-#include "lv_demo_music_list.h"
+//#include "lv_demo_music_list.h"
 #include "assets/spectrum_1.h"
 #include "assets/spectrum_2.h"
 #include "assets/spectrum_3.h"
@@ -131,7 +131,7 @@ lv_obj_t *_lv_demo_music_main_create(lv_obj_t *parent)
     lv_obj_t *cont = create_cont(parent);
     create_wave_images(cont);
     lv_obj_t *title_box = create_title_box(cont);
-    lv_obj_t *icon_box = create_icon_box(cont);
+    //lv_obj_t *icon_box = create_icon_box(cont);
     lv_obj_t *ctrl_box = create_ctrl_box(cont);
     spectrum_obj = create_spectrum_obj(cont);
     lv_obj_t *handle_box = create_handle(cont);
@@ -144,11 +144,12 @@ lv_obj_t *_lv_demo_music_main_create(lv_obj_t *parent)
 #if LV_DEMO_MUSIC_SQUARE || LV_DEMO_MUSIC_ROUND
     static const lv_coord_t grid_cols[] = {LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
     static lv_coord_t grid_rows[] = {LV_DEMO_MUSIC_HANDLE_SIZE,     /*Spacing*/
-                                     0,   /*Spectrum obj, set later*/
+                                     //0,   /*Spectrum obj, set later*/
+                                     LV_GRID_CONTENT,   /*Spectrum obj */
                                      LV_GRID_CONTENT, /*Title box*/
-                                     LV_GRID_FR(3),   /*Spacer*/
-                                     LV_GRID_CONTENT, /*Icon box*/
-                                     LV_GRID_FR(3),   /*Spacer*/
+                                     //LV_GRID_FR(3),   /*Spacer*/
+                                     //LV_GRID_CONTENT, /*Icon box*/
+                                     //LV_GRID_FR(3),   /*Spacer*/
                                      LV_GRID_CONTENT, /*Control box*/
                                      LV_GRID_FR(3),   /*Spacer*/
                                      LV_GRID_CONTENT, /*Handle box*/
@@ -156,68 +157,17 @@ lv_obj_t *_lv_demo_music_main_create(lv_obj_t *parent)
                                      LV_GRID_TEMPLATE_LAST
                                     };
 
-    grid_rows[1] = LV_VER_RES;
+    //grid_rows[1] = LV_VER_RES;
 
     lv_obj_set_grid_dsc_array(cont, grid_cols, grid_rows);
     lv_obj_set_style_grid_row_align(cont, LV_GRID_ALIGN_SPACE_BETWEEN, 0);
-    lv_obj_set_grid_cell(spectrum_obj, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 1, 1);
+    lv_obj_set_grid_cell(spectrum_obj, LV_GRID_ALIGN_STRETCH, 0, 1, LV_ALIGN_CENTER, 1, 1);
     lv_obj_set_grid_cell(title_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_ALIGN_CENTER, 2, 1);
-    lv_obj_set_grid_cell(icon_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_ALIGN_CENTER, 4, 1);
-    lv_obj_set_grid_cell(ctrl_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_ALIGN_CENTER, 6, 1);
-    lv_obj_set_grid_cell(handle_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_ALIGN_CENTER, 8, 1);
-#elif LV_DEMO_MUSIC_LANDSCAPE == 0
-    static const lv_coord_t grid_cols[] = {LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-    static const lv_coord_t grid_rows[] = {LV_DEMO_MUSIC_HANDLE_SIZE,     /*Spacing*/
-                                           LV_GRID_FR(1),   /*Spacer*/
-                                           LV_GRID_CONTENT, /*Title box*/
-                                           LV_GRID_FR(3),   /*Spacer*/
-                                           LV_GRID_CONTENT, /*Icon box*/
-                                           LV_GRID_FR(3),   /*Spacer*/
-# if LV_DEMO_MUSIC_LARGE == 0
-                                           250,    /*Spectrum obj*/
-# else
-                                           480,   /*Spectrum obj*/
-# endif
-                                           LV_GRID_FR(3),   /*Spacer*/
-                                           LV_GRID_CONTENT, /*Control box*/
-                                           LV_GRID_FR(3),   /*Spacer*/
-                                           LV_GRID_CONTENT, /*Handle box*/
-                                           LV_GRID_FR(1),   /*Spacer*/
-                                           LV_DEMO_MUSIC_HANDLE_SIZE,     /*Spacing*/
-                                           LV_GRID_TEMPLATE_LAST
-                                          };
-
-    lv_obj_set_grid_dsc_array(cont, grid_cols, grid_rows);
-    lv_obj_set_style_grid_row_align(cont, LV_GRID_ALIGN_SPACE_BETWEEN, 0);
-    lv_obj_set_grid_cell(title_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-    lv_obj_set_grid_cell(icon_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 4, 1);
-    lv_obj_set_grid_cell(spectrum_obj, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 6, 1);
-    lv_obj_set_grid_cell(ctrl_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 8, 1);
-    lv_obj_set_grid_cell(handle_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 10, 1);
-#else
-    /*Arrange the content into a grid*/
-    static const lv_coord_t grid_cols[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-    static const lv_coord_t grid_rows[] = {LV_DEMO_MUSIC_HANDLE_SIZE,     /*Spacing*/
-                                           LV_GRID_FR(1),   /*Spacer*/
-                                           LV_GRID_CONTENT, /*Title box*/
-                                           LV_GRID_FR(1),   /*Spacer*/
-                                           LV_GRID_CONTENT, /*Icon box*/
-                                           LV_GRID_FR(3),   /*Spacer*/
-                                           LV_GRID_CONTENT, /*Control box*/
-                                           LV_GRID_FR(1),   /*Spacer*/
-                                           LV_GRID_CONTENT, /*Handle box*/
-                                           LV_GRID_FR(1),   /*Spacer*/
-                                           LV_DEMO_MUSIC_HANDLE_SIZE,     /*Spacing*/
-                                           LV_GRID_TEMPLATE_LAST
-                                          };
-
-    lv_obj_set_grid_dsc_array(cont, grid_cols, grid_rows);
-    lv_obj_set_style_grid_row_align(cont, LV_GRID_ALIGN_SPACE_BETWEEN, 0);
-    lv_obj_set_grid_cell(title_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 2, 1);
-    lv_obj_set_grid_cell(icon_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 4, 1);
-    lv_obj_set_grid_cell(ctrl_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_CENTER, 6, 1);
-    lv_obj_set_grid_cell(handle_box, LV_GRID_ALIGN_STRETCH, 0, 2, LV_GRID_ALIGN_CENTER, 8, 1);
-    lv_obj_set_grid_cell(spectrum_obj, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_CENTER, 1, 9);
+    //lv_obj_set_grid_cell(icon_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_ALIGN_CENTER, 4, 1);
+    //lv_obj_set_grid_cell(ctrl_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_ALIGN_CENTER, 6, 1);
+    lv_obj_set_grid_cell(ctrl_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_ALIGN_CENTER, 3, 1);
+    //lv_obj_set_grid_cell(handle_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_ALIGN_CENTER, 8, 1);
+    lv_obj_set_grid_cell(handle_box, LV_GRID_ALIGN_STRETCH, 0, 1, LV_ALIGN_CENTER, 5, 1);
 #endif
 
     sec_counter_timer = lv_timer_create(timer_cb, 1000, NULL);
@@ -246,7 +196,7 @@ lv_obj_t *_lv_demo_music_main_create(lv_obj_t *parent)
     }
 
     lv_obj_fade_in(title_box, 1000, INTRO_TIME + 1000);
-    lv_obj_fade_in(icon_box, 1000, INTRO_TIME + 1000);
+    //lv_obj_fade_in(icon_box, 1000, INTRO_TIME + 1000);
     lv_obj_fade_in(ctrl_box, 1000, INTRO_TIME + 1000);
     lv_obj_fade_in(handle_box, 1000, INTRO_TIME + 1000);
     lv_obj_fade_in(album_img_obj, 800, INTRO_TIME + 1000);
@@ -261,6 +211,7 @@ lv_obj_t *_lv_demo_music_main_create(lv_obj_t *parent)
     lv_anim_set_ready_cb(&a, NULL);
     lv_anim_start(&a);
 
+#if 0
     /* Create an intro from a logo + label */
     LV_IMG_DECLARE(img_lv_demo_music_logo);
     lv_obj_t *logo = lv_img_create(lv_scr_act());
@@ -283,6 +234,7 @@ lv_obj_t *_lv_demo_music_main_create(lv_obj_t *parent)
     lv_anim_set_values(&a, LV_IMG_ZOOM_NONE, 10);
     lv_anim_set_ready_cb(&a, lv_obj_del_anim_ready_cb);
     lv_anim_start(&a);
+#endif
 
     lv_obj_update_layout(main_cont);
 
@@ -389,10 +341,11 @@ static lv_obj_t *create_cont(lv_obj_t *parent)
 #endif
     lv_obj_clear_flag(player, LV_OBJ_FLAG_SNAPABLE);
 
-    lv_obj_set_style_bg_color(player, lv_color_hex(0xffffff), 0);
     lv_obj_set_style_border_width(player, 0, 0);
     lv_obj_set_style_pad_all(player, 0, 0);
     lv_obj_set_scroll_dir(player, LV_DIR_VER);
+    lv_obj_set_style_bg_color(player, lv_color_hex(0xFFFFFF), 0);
+    lv_obj_set_style_bg_opa(player, LV_OPA_COVER, 0);
 
     /* Transparent placeholders below the player container
      * It is used only to snap it to center.*/
@@ -409,20 +362,22 @@ static lv_obj_t *create_cont(lv_obj_t *parent)
     //    lv_obj_set_style_bg_opa(placeholder2, LV_OPA_50, 0);
 
 #if LV_DEMO_MUSIC_SQUARE || LV_DEMO_MUSIC_ROUND
+#if 0
     lv_obj_t *placeholder3 = lv_obj_create(main_cont);
     lv_obj_remove_style_all(placeholder3);
     lv_obj_clear_flag(placeholder3, LV_OBJ_FLAG_CLICKABLE);
     //    lv_obj_set_style_bg_color(placeholder3, lv_color_hex(0x0000ff), 0);
     //    lv_obj_set_style_bg_opa(placeholder3, LV_OPA_20, 0);
-
+#endif
     lv_obj_set_size(placeholder1, lv_pct(100), LV_VER_RES);
     lv_obj_set_y(placeholder1, 0);
 
     lv_obj_set_size(placeholder2, lv_pct(100), LV_VER_RES);
     lv_obj_set_y(placeholder2, LV_VER_RES);
-
+#if 0
     lv_obj_set_size(placeholder3, lv_pct(100),  LV_VER_RES - 2 * LV_DEMO_MUSIC_HANDLE_SIZE);
     lv_obj_set_y(placeholder3, 2 * LV_VER_RES + LV_DEMO_MUSIC_HANDLE_SIZE);
+#endif
 #else
     lv_obj_set_size(placeholder1, lv_pct(100), LV_VER_RES);
     lv_obj_set_y(placeholder1, 0);
@@ -602,7 +557,8 @@ static lv_obj_t *create_ctrl_box(lv_obj_t *parent)
     lv_obj_set_style_anim_time(slider_obj, 100, 0);
     lv_obj_add_flag(slider_obj, LV_OBJ_FLAG_CLICKABLE); /*No input from the slider*/
 
-#if LV_DEMO_MUSIC_LARGE == 0
+//#if LV_DEMO_MUSIC_LARGE == 0
+#if 0
     lv_obj_set_height(slider_obj, 3);
 #else
     lv_obj_set_height(slider_obj, 6);
@@ -667,11 +623,11 @@ static void track_load(uint32_t id)
     bool next = false;
     if ((track_id + 1) % ACTIVE_TRACK_CNT == id) next = true;
 
-    _lv_demo_music_list_btn_check(track_id, false);
+    //_lv_demo_music_list_btn_check(track_id, false);
 
     track_id = id;
 
-    _lv_demo_music_list_btn_check(id, true);
+    //_lv_demo_music_list_btn_check(id, true);
 
     lv_label_set_text(title_label, _lv_demo_music_get_title(track_id));
     lv_label_set_text(artist_label, _lv_demo_music_get_artist(track_id));
