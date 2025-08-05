@@ -23,5 +23,7 @@ typedef struct
 } mp3_ctrl_info_t;
 
 void play_buff(const char *buff, int len);
+void play_pause(void);
+void play_resume(void);
 
 #endif

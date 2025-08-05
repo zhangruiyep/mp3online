@@ -284,6 +284,9 @@ void _lv_demo_music_play(uint32_t id)
     _lv_demo_music_resume();
 }
 
+extern void mp3_stream_pause(void);
+extern void mp3_stream_resume(void);
+
 void _lv_demo_music_resume(void)
 {
     playing = true;
@@ -302,7 +305,7 @@ void _lv_demo_music_resume(void)
     lv_slider_set_range(slider_obj, 0, _lv_demo_music_get_track_length(track_id));
 
     lv_obj_add_state(play_obj, LV_STATE_CHECKED);
-
+    mp3_stream_resume();
 }
 
 void _lv_demo_music_pause(void)
@@ -315,6 +318,7 @@ void _lv_demo_music_pause(void)
     lv_img_set_zoom(album_img_obj, LV_IMG_ZOOM_NONE);
     lv_timer_pause(sec_counter_timer);
     lv_obj_clear_state(play_obj, LV_STATE_CHECKED);
+    mp3_stream_pause();
 }
 
 /**********************
@@ -506,11 +510,8 @@ static lv_obj_t *create_ctrl_box(lv_obj_t *parent)
     lv_obj_t *cont = lv_obj_create(parent);
     lv_obj_remove_style_all(cont);
     lv_obj_set_height(cont, LV_SIZE_CONTENT);
-#if LV_DEMO_MUSIC_LARGE
+
     lv_obj_set_style_pad_bottom(cont, 17, 0);
-#else
-    lv_obj_set_style_pad_bottom(cont, 8, 0);
-#endif
     static const lv_coord_t grid_col[] = {LV_GRID_FR(2), LV_GRID_FR(3), LV_GRID_FR(5), LV_GRID_FR(5), LV_GRID_FR(5), LV_GRID_FR(3), LV_GRID_FR(2), LV_GRID_TEMPLATE_LAST};
     static const lv_coord_t grid_row[] = {LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
     lv_obj_set_grid_dsc_array(cont, grid_col, grid_row);
@@ -557,12 +558,7 @@ static lv_obj_t *create_ctrl_box(lv_obj_t *parent)
     lv_obj_set_style_anim_time(slider_obj, 100, 0);
     lv_obj_add_flag(slider_obj, LV_OBJ_FLAG_CLICKABLE); /*No input from the slider*/
 
-//#if LV_DEMO_MUSIC_LARGE == 0
-#if 0
-    lv_obj_set_height(slider_obj, 3);
-#else
     lv_obj_set_height(slider_obj, 6);
-#endif
     lv_obj_set_grid_cell(slider_obj, LV_GRID_ALIGN_STRETCH, 1, 4, LV_GRID_ALIGN_CENTER, 1, 1);
 
     lv_obj_set_style_bg_img_src(slider_obj, &img_lv_demo_music_slider_knob, LV_PART_KNOB);

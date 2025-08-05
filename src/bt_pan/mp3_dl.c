@@ -36,6 +36,15 @@ typedef struct
     } data;
 } mp3_dl_msg_t;
 
+typedef enum
+{
+    MP3_DL_STATE_IDLE,
+    MP3_DL_STATE_INIT,
+    MP3_DL_STATE_DLING,
+} mp3_dl_state_t;
+
+static mp3_dl_state_t g_mp3_dl_state = MP3_DL_STATE_IDLE;
+
 static uint8_t is_ip_searching;
 
 static int g_mp3_dl_content_len = 0;
@@ -133,6 +142,7 @@ void mp3_dl_thread_entry(void *params)
     content_length = webclient_content_length_get(session);
     if (content_length > 0)
     {
+        g_mp3_dl_state = MP3_DL_STATE_DLING;
         rt_kprintf("content_length==%d\n", content_length);
         g_mp3_dl_content_len = content_length;
 
@@ -222,17 +232,53 @@ __exit:
     rt_mq_delete(g_mp3_dl_mq);
     g_mp3_dl_mq = RT_NULL;
 
+    g_mp3_dl_state = MP3_DL_STATE_IDLE;
+
     return;
 }
 
 int mp3_dl_thread_init(void)
 {
-    g_mp3_dl_mq = rt_mq_create("mp3_dl_mq", sizeof(mp3_ctrl_info_t), 60, RT_IPC_FLAG_FIFO);
-    RT_ASSERT(g_mp3_dl_mq);
-    g_mp3_dl_thread = rt_thread_create("mp3_dl", mp3_dl_thread_entry, NULL, 2048, RT_THREAD_PRIORITY_MIDDLE, RT_THREAD_TICK_DEFAULT);
-    RT_ASSERT(g_mp3_dl_thread);
-    rt_err_t err = rt_thread_startup(g_mp3_dl_thread);
-    RT_ASSERT(RT_EOK == err);
+    if (g_mp3_dl_state == MP3_DL_STATE_IDLE)
+    {
+        g_mp3_dl_mq = rt_mq_create("mp3_dl_mq", sizeof(mp3_ctrl_info_t), 60, RT_IPC_FLAG_FIFO);
+        RT_ASSERT(g_mp3_dl_mq);
+        g_mp3_dl_thread = rt_thread_create("mp3_dl", mp3_dl_thread_entry, NULL, 2048, RT_THREAD_PRIORITY_MIDDLE, RT_THREAD_TICK_DEFAULT);
+        RT_ASSERT(g_mp3_dl_thread);
+        rt_err_t err = rt_thread_startup(g_mp3_dl_thread);
+        RT_ASSERT(RT_EOK == err);
+        g_mp3_dl_state = MP3_DL_STATE_INIT;
+    }
+}
+
+void mp3_stream_resume(void)
+{
+    mp3_dl_thread_init();
+    if (g_mp3_dl_state = MP3_DL_STATE_INIT)
+    {
+        int retry = 30;
+        while (retry-- > 0)
+        {
+            if (g_mp3_dl_content_len)
+            {
+                play_buff(g_mp3_ring_buffer, g_mp3_dl_content_len);
+                break;
+            }
+            rt_thread_mdelay(1000);
+        }
+    }
+    else if (g_mp3_dl_state = MP3_DL_STATE_DLING)
+    {
+        play_resume();
+    }
+}
+
+void mp3_stream_pause(void)
+{
+    if (g_mp3_dl_state = MP3_DL_STATE_DLING)
+    {
+        play_pause();
+    }
 }
 
 static void mp3play(int argc, char **argv)
@@ -250,8 +296,6 @@ static void mp3play(int argc, char **argv)
     }
 }
 MSH_CMD_EXPORT(mp3play, MP3 play online)
-
-
 
 /************************ (C) COPYRIGHT Sifli Technology *******END OF FILE****/
 
