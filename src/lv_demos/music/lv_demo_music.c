@@ -33,7 +33,8 @@ static lv_obj_t *ctrl;
 
 static const char *title_list[] =
 {
-    "Waiting for true love",
+    //"Waiting for true love",
+    "Hope Is the Thing With Feathers",
     "Need a Better Future",
     "Vibrations",
     "Why now?",
@@ -51,7 +52,8 @@ static const char *title_list[] =
 
 static const char *artist_list[] =
 {
-    "The John Smith Band",
+    //"The John Smith Band",
+    "Chevy",
     "My True Name",
     "Robotics",
     "John Smith",
@@ -70,7 +72,8 @@ static const char *artist_list[] =
 
 static const char *genre_list[] =
 {
-    "Rock - 1997",
+    //"Rock - 1997",
+    "Pop - 2024",
     "Drum'n bass - 2016",
     "Psy trance - 2020",
     "Metal - 2015",
@@ -88,7 +91,8 @@ static const char *genre_list[] =
 
 static const uint32_t time_list[] =
 {
-    1 * 60 + 14,
+    //1 * 60 + 14,
+    3 * 60 + 49,
     2 * 60 + 26,
     1 * 60 + 54,
     2 * 60 + 24,

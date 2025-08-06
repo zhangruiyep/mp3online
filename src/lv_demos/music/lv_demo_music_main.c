@@ -96,6 +96,8 @@ static const uint16_t (* spectrum)[4];
 static uint32_t spectrum_len;
 static const uint16_t rnd_array[30] = {994, 285, 553, 11, 792, 707, 966, 641, 852, 827, 44, 352, 146, 581, 490, 80, 729, 58, 695, 940, 724, 561, 124, 653, 27, 292, 557, 506, 382, 199};
 
+extern bool g_mp3_play_is_end;
+
 /**********************
  *      MACROS
  **********************/
@@ -299,12 +301,14 @@ void _lv_demo_music_resume(void)
     lv_anim_set_time(&a, ((spectrum_len - spectrum_i) * 1000) / 30);
     lv_anim_set_playback_time(&a, 0);
     lv_anim_set_ready_cb(&a, spectrum_end_cb);
+    lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
     lv_anim_start(&a);
 
     lv_timer_resume(sec_counter_timer);
     lv_slider_set_range(slider_obj, 0, _lv_demo_music_get_track_length(track_id));
 
     lv_obj_add_state(play_obj, LV_STATE_CHECKED);
+    g_mp3_play_is_end = false;
     mp3_stream_resume();
 }
 
@@ -851,7 +855,8 @@ static void spectrum_anim_cb(void *a, int32_t v)
         return;
     }
 
-    spectrum_i = v;
+    //spectrum_i = v;
+    spectrum_i = v % spectrum_len;
     lv_obj_invalidate(obj);
 
     static uint32_t bass_cnt = 0;
@@ -955,19 +960,28 @@ static void next_click_event_cb(lv_event_t *e)
     }
 }
 
-
+extern uint32_t g_mp3_play_seconds;
 static void timer_cb(lv_timer_t *t)
 {
     LV_UNUSED(t);
+#if 0
     time_act++;
     lv_label_set_text_fmt(time_obj, "%"LV_PRIu32":%02"LV_PRIu32, time_act / 60, time_act % 60);
     lv_slider_set_value(slider_obj, time_act, LV_ANIM_ON);
+#else
+    lv_label_set_text_fmt(time_obj, "%"LV_PRIu32":%02"LV_PRIu32, g_mp3_play_seconds / 60, g_mp3_play_seconds % 60);
+    lv_slider_set_value(slider_obj, g_mp3_play_seconds, LV_ANIM_ON);
+    if (g_mp3_play_is_end)  // set by mp3 play thread
+    {
+        _lv_demo_music_pause();
+    }
+#endif
 }
 
 static void spectrum_end_cb(lv_anim_t *a)
 {
     LV_UNUSED(a);
-    _lv_demo_music_album_next(true);
+    //_lv_demo_music_album_next(true);
 }
 
 static void stop_start_anim_timer_cb(lv_timer_t *t)

@@ -62,6 +62,10 @@ uint8_t g_mp3_ring_buffer[1024*16] = {};
 int g_mp3_ring_buffer_write_pos = 0;
 int g_mp3_ring_buffer_read_pos = 0;
 
+/* play status */
+uint32_t g_mp3_play_seconds = 0;
+bool g_mp3_play_is_end = false;
+
 /* Semaphore used to wait aes interrupt. */
 /* mp3 handle */
 static mp3ctrl_handle g_mp3_handle = NULL;
@@ -141,6 +145,7 @@ static int play_callback_func(audio_server_callback_cmt_t cmd, void *callback_us
     {
         case as_callback_cmd_user:
             rt_kprintf("[LOCAL MUSIC]%s cmd user, data=%x secs=%d\n", __func__, callback_userdata, reserved);
+            g_mp3_play_seconds = reserved;
             break;
         case as_callback_cmd_user_read:
             rt_kprintf("[LOCAL MUSIC]%s user read, read_pos=%d\n", __func__, reserved);
@@ -149,6 +154,7 @@ static int play_callback_func(audio_server_callback_cmt_t cmd, void *callback_us
             break;
         case as_callback_cmd_play_to_end:
             /* To close audio client when playing has been completed. */
+            g_mp3_play_is_end = true;
             play_stop();
             break;
 
