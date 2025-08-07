@@ -893,6 +893,7 @@ static lv_obj_t *album_img_create(lv_obj_t *parent)
     LV_IMG_DECLARE(img_lv_demo_music_cover_1);
     LV_IMG_DECLARE(img_lv_demo_music_cover_2);
     LV_IMG_DECLARE(img_lv_demo_music_cover_3);
+    LV_IMG_DECLARE(img_hope_cover);
 
     lv_obj_t *img;
     img = lv_img_create(parent);
@@ -910,7 +911,8 @@ static lv_obj_t *album_img_create(lv_obj_t *parent)
         spectrum_len = sizeof(spectrum_2) / sizeof(spectrum_2[0]);
         break;
     case 0:
-        lv_img_set_src(img, &img_lv_demo_music_cover_1);
+        //lv_img_set_src(img, &img_lv_demo_music_cover_1);
+        lv_img_set_src(img, &img_hope_cover);
         spectrum = spectrum_1;
         spectrum_len = sizeof(spectrum_1) / sizeof(spectrum_1[0]);
         break;
