@@ -5,6 +5,9 @@
 #include "lwip/dns.h"
 #include <webclient.h>
 #include <cJSON.h>
+#if PKG_NETUTILS_NTP
+#include "ntp.h"
+#endif
 #include "local_music.h"
 
 #ifndef MIN
@@ -103,7 +106,7 @@ void mp3_dl_thread_entry(void *params)
     char *buffer = RT_NULL;
     int resp_status;
     struct webclient_session *session = RT_NULL;
-    char *playlist_url = RT_NULL;
+    char *mp3_url = RT_NULL;
     int content_length = -1, bytes_read = 0;
     int content_pos = 0;
 
@@ -113,16 +116,21 @@ void mp3_dl_thread_entry(void *params)
         rt_thread_mdelay(2000);
     }
 
-    /* 为 playlist_url 分配空间 */
-    playlist_url = rt_calloc(1, GET_URL_LEN_MAX);
-    if (playlist_url == RT_NULL)
+#if PKG_NETUTILS_NTP
+    /* sync time before download */
+    ntp_sync_to_rtc(RT_NULL);
+#endif
+
+    /* 为 mp3_url 分配空间 */
+    mp3_url = rt_calloc(1, GET_URL_LEN_MAX);
+    if (mp3_url == RT_NULL)
     {
-        rt_kprintf("No memory for playlist_url!\n");
+        rt_kprintf("No memory for mp3_url!\n");
         goto __exit;
     }
 
     /* 拼接 GET 网址 */
-    rt_snprintf(playlist_url, GET_URL_LEN_MAX, "http://music.163.com/song/media/outer/url?id=2155423468.mp3");
+    rt_snprintf(mp3_url, GET_URL_LEN_MAX, "http://music.163.com/song/media/outer/url?id=2155423468.mp3");
 
     /* 创建会话并且设置响应的大小 */
     session = webclient_session_create(GET_HEADER_BUFSZ);
@@ -133,7 +141,7 @@ void mp3_dl_thread_entry(void *params)
     }
 
     /* 发送 GET 请求使用默认的头部 */
-    if ((resp_status = webclient_get(session, playlist_url)) != 200)
+    if ((resp_status = webclient_get(session, mp3_url)) != 200)
     {
         rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
         goto __exit;
@@ -218,10 +226,10 @@ void mp3_dl_thread_entry(void *params)
 
 __exit:
     /* 释放网址空间 */
-    if (playlist_url != RT_NULL)
+    if (mp3_url != RT_NULL)
     {
-        rt_free(playlist_url);
-        playlist_url = RT_NULL;
+        rt_free(mp3_url);
+        mp3_url = RT_NULL;
     }
 
     /* 关闭会话 */
