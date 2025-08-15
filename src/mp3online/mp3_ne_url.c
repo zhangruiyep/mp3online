@@ -43,6 +43,70 @@ void ne_set_cookie(char *cookie)
     }
 }
 
+char *cJSON_to_query_string(cJSON *json)
+{
+    RT_ASSERT(json);
+    char *query_string = (char *)rt_malloc(2048);
+    cJSON *item = NULL;
+    cJSON_ArrayForEach(item, json)
+    {
+        if (!cJSON_IsString(item))
+        {
+            continue;
+        }
+
+        sprintf(query_string, "%s%s=", query_string, item->string);
+        /* handle special char */
+        char *src = cJSON_GetStringValue(item);
+        char *dst = query_string + strlen(query_string);
+        while (*src)
+        {
+            switch (*src)
+            {
+            case '&':
+                *dst++ = '%';
+                *dst++ = '2';
+                *dst++ = '6';
+                break;
+            case '=':
+                *dst++ = '%';
+                *dst++ = '3';
+                *dst++ = 'D';
+                break;
+            case ' ':
+                *dst++ = '%';
+                *dst++ = '2';
+                *dst++ = '0';
+                break;
+            case '+':
+                *dst++ = '%';
+                *dst++ = '2';
+                *dst++ = 'B';
+                break;
+            case ',':
+                *dst++ = '%';
+                *dst++ = '2';
+                *dst++ = 'C';
+                break;
+            case '/':
+                *dst++ = '%';
+                *dst++ = '2';
+                *dst++ = 'F';
+                break;
+            default:
+                *dst++ = *src;
+                break;
+            }
+            src++;
+        }
+        *dst++ = '&';
+    }
+    int len = strlen(query_string);
+    /*  remove last '&' */
+    query_string[len - 1] = '\0';
+    return query_string;
+}
+
 static void mp3_ne_url_test(int argc, char **argv)
 {
     if (strcmp(argv[1], "cookie") == 0)

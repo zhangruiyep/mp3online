@@ -48,8 +48,6 @@ typedef enum
 
 static mp3_dl_state_t g_mp3_dl_state = MP3_DL_STATE_IDLE;
 
-static uint8_t is_ip_searching;
-
 static int g_mp3_dl_content_len = 0;
 
 static rt_mq_t g_mp3_dl_mq = NULL;

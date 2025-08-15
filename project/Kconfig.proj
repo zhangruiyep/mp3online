@@ -17,4 +17,8 @@ config MP3_RINGBUFF
     depends on AUDIO_LOCAL_MUSIC
     default y
 
+config WEBCLIENT_DEBUG
+    bool "enable webclient debug"
+    default n
+
 rsource "../src/Kconfig"

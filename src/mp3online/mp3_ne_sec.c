@@ -220,7 +220,7 @@ static char* ne_rsa_encrypt(const char *input)
     return output_str;
 }
 
-static cJSON* weapi(cJSON* json) {
+cJSON* weapi(cJSON* json) {
     const uint8_t* nonce = "0CoJUm6Qyw8W8jud";
     char* text = cJSON_PrintUnformatted(json); // eslint-disable-line no-param-reassign
     RT_ASSERT(text);
