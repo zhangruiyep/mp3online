@@ -6,6 +6,7 @@ cwd = GetCurrentDir() # get current dir path
 # Add source code
 src = Glob('*.c')
 inc = [cwd]
+inc += [cwd + '/inc']
 group = DefineGroup('mp3ol', src, depend = [''], CPPPATH = inc)
 
 Return('group')

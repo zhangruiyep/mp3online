@@ -10,6 +10,7 @@
     #include "dfs_posix.h"
 #endif
 #include "drv_flash.h"
+#include "mp3_mem.h"
 #include "local_music.h"
 
 /* notify download thread play progress */
@@ -58,7 +59,13 @@ INIT_ENV_EXPORT(mnt_init);
 
 /* User code start from here --------------------------------------------------------*/
 /* ringbuff for stream download and play */
-uint8_t g_mp3_ring_buffer[1024*16] = {};
+#if 0
+L2_NON_RET_BSS_SECT_BEGIN(mp3_ol)
+L2_NON_RET_BSS_SECT(mp3_ol, ALIGN(4) uint8_t g_mp3_ring_buffer[1024*16]);
+L2_NON_RET_BSS_SECT_END
+#endif
+//uint8_t g_mp3_ring_buffer[1024*16] = {};
+uint8_t * g_mp3_ring_buffer = NULL;
 int g_mp3_ring_buffer_write_pos = 0;
 int g_mp3_ring_buffer_read_pos = 0;
 
@@ -173,6 +180,12 @@ void mp3_proc_thread_entry(void *params)
     rt_err_t err = RT_ERROR;
     mp3_ctrl_info_t msg;
 
+    if (g_mp3_ring_buffer == NULL)
+    {
+        g_mp3_ring_buffer = (uint8_t *)mp3_mem_malloc(1024*16);
+        RT_ASSERT(g_mp3_ring_buffer != NULL);
+    }
+
     while (1)
     {
         err = rt_mq_recv(g_mp3_proc_mq, &msg, sizeof(msg), RT_WAITING_FOREVER);
@@ -221,6 +234,12 @@ void mp3_proc_thread_entry(void *params)
             break;
         }
         rt_kprintf("[LOCAL MUSIC]RECV END.\n");
+    }
+
+    if (g_mp3_ring_buffer)
+    {
+        mp3_mem_free(g_mp3_ring_buffer);
+        g_mp3_ring_buffer = NULL;
     }
 }
 

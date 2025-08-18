@@ -41,7 +41,7 @@ char *ne_get_cookie(void)
 
 void ne_set_cookie_item(const char *name, const char *value)
 {
-    rt_kprintf("%s: %s=%s", __func__, name, value);
+    //rt_kprintf("%s: %s=%s", __func__, name, value);
     if (g_cookie_json)
     {
         cJSON_AddStringToObject(g_cookie_json, name, value);

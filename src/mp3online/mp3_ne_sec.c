@@ -26,7 +26,7 @@
 #define ALIGN_16(x) (((x) + 0xf) & ~0xf)
 #define mp3_free(ptr)   do{\
     if(ptr)\
-        free(ptr);\
+        rt_free(ptr);\
 }while(0)
 
 static mbedtls_cipher_context_t g_cipher_ctx;
@@ -70,7 +70,7 @@ uint8_t * ne_create_secret_key(int size) {
         return NULL;
     }
 
-    uint8_t* result = (uint8_t*)malloc(size+1);
+    uint8_t* result = (uint8_t*)rt_malloc(size+1);
     RT_ASSERT(result);
     memset(result, 0, size+1);
 
@@ -88,14 +88,14 @@ uint8_t * ne_create_secret_key(int size) {
 static char* ne_base64_encode(const unsigned char* input, int input_len, int* output_len)
 {
     int output_buff_len = ALIGN_16(input_len*4/3+2);  //about 4/3 of input
-    char *output = (char*)malloc(output_buff_len);
+    char *output = (char*)rt_malloc(output_buff_len);
     RT_ASSERT(output);
 
     int ret = mbedtls_base64_encode((unsigned char*)output, output_buff_len, output_len, input, input_len);
     if (ret != 0)
     {
         mp3_err("%s b64 fail %d\n", __func__, ret);
-        free(output);
+        rt_free(output);
         return NULL;
     }
 
@@ -119,7 +119,7 @@ static uint8_t* ne_aes_cbc_encrypt(const char* text, const unsigned char* sec_ke
     RT_ASSERT(ret==0);
 
     int output_buf_len = ALIGN_16(strlen(text)+1)+1;
-    uint8_t* output = (uint8_t*)malloc(output_buf_len);
+    uint8_t* output = (uint8_t*)rt_malloc(output_buf_len);
     RT_ASSERT(output);
     //mp3_log("%s:output=%x len=%d\n", __func__, output, output_buf_len);
     memset(output, 0, output_buf_len);
@@ -148,7 +148,7 @@ const char* pubKey = "010001";
 static char* ne_rsa_encrypt(const char *input)
 {
     int ret = 0;
-    char *reverse = (char*)malloc(strlen(input) + 1);
+    char *reverse = (char*)rt_malloc(strlen(input) + 1);
     RT_ASSERT(reverse);
     memset(reverse, 0, strlen(input) + 1);
     for (int i = strlen(input) - 1; i >= 0; i--)
@@ -169,7 +169,7 @@ static char* ne_rsa_encrypt(const char *input)
 
 #define RSA_OUT_BUF_LEN 260
     size_t olen = 0;
-    char *output_str = (char*)malloc(RSA_OUT_BUF_LEN);
+    char *output_str = (char*)rt_malloc(RSA_OUT_BUF_LEN);
     RT_ASSERT(output_str);
     memset(output_str, 0, RSA_OUT_BUF_LEN);
 
@@ -190,7 +190,7 @@ static char* ne_rsa_encrypt(const char *input)
     mp3_text_dump(output_str, strlen(output_str));
 #endif
 
-    char *b_str = (char*)malloc(40);
+    char *b_str = (char*)rt_malloc(40);
     RT_ASSERT(b_str);
     memset(b_str, 0, 40);
     mp3_bin2hex(reverse, strlen(input), b_str);

@@ -10,6 +10,7 @@
 #endif
 #include "mp3_ne_sec.h"
 #include "mp3_ne_url.h"
+#include "mp3_mem.h"
 
 #ifndef MIN
 #define MIN(a,b) ((a)>(b)?(b):(a))
@@ -20,6 +21,7 @@
 #define POST_HEADER_BUFSZ              2048
 
 extern int check_internet_access(void);
+void mp3_playlist_content_handle(const char *content);
 
 static rt_mq_t g_mp3_playlist_mq = NULL;
 static rt_thread_t g_mp3_playlist_thread = NULL;
@@ -102,18 +104,18 @@ void mp3_playlist_thread_entry(void *params)
         char *nmtid = strstr(set_cookie, "NMTID=");
         if (nmtid)
         {
-            rt_kprintf("%s: found NMTID=%s\n", __func__, nmtid);
+            //rt_kprintf("%s: found NMTID=%s\n", __func__, nmtid);
             char nmtid_value[64] = {0};
             if (sscanf(nmtid, "NMTID=%[^;]", nmtid_value) > 0)
             {
-                rt_kprintf("%s: nmtid_value=%s\n", __func__, nmtid_value);
+                //rt_kprintf("%s: nmtid_value=%s\n", __func__, nmtid_value);
                 ne_set_cookie_item("NMTID", nmtid_value);
             }
         }
     }
     else
     {
-        rt_kprintf("Set-Cookie: not found\n");
+        //rt_kprintf("Set-Cookie: not found\n");
     }
 
     int content_length = webclient_content_length_get(session);
@@ -124,6 +126,7 @@ void mp3_playlist_thread_entry(void *params)
         goto __exit;
     }
 
+#if 0
     rt_kprintf("webclient post response data: \n");
     do
     {
@@ -140,6 +143,15 @@ void mp3_playlist_thread_entry(void *params)
     } while (1);
 
     rt_kprintf("\n");
+#endif
+    char *content = mp3_mem_malloc(content_length + 1);
+    RT_ASSERT(content);
+    memset(content, 0, content_length + 1);
+    bytes_read = webclient_read(session, content, content_length);
+    RT_ASSERT(bytes_read == content_length);
+
+    mp3_playlist_content_handle(content);
+    if (content) mp3_mem_free(content);
 
 __exit:
     if (session)
@@ -171,8 +183,31 @@ int mp3_playlist_thread_init(void)
     RT_ASSERT(RT_EOK == err);
 }
 
+void mp3_playlist_content_handle(const char *content)
+{
+    cJSON *json = cJSON_Parse(content);
+    RT_ASSERT(json);
+
+    cJSON *trackIds = cJSON_GetObjectItem(cJSON_GetObjectItem(json, "playlist"), "trackIds");
+    RT_ASSERT(trackIds);
+    for (int i = 0; i < cJSON_GetArraySize(trackIds); i++)
+    {
+        cJSON *trackId = cJSON_GetArrayItem(trackIds, i);
+        rt_kprintf("id[%d]=%s\n", i, cJSON_GetStringValue(trackId));
+    }
+    cJSON_Delete(json);
+}
+
+cJSON_Hooks mp3_mem_hook =
+{
+    .malloc_fn = mp3_mem_malloc,
+    .free_fn = mp3_mem_free,
+};
+
 static void mp3_playlist(int argc, char **argv)
 {
+    cJSON_InitHooks(&mp3_mem_hook);
     mp3_playlist_thread_init();
 }
 MSH_CMD_EXPORT(mp3_playlist, MP3 playlist test)
+
