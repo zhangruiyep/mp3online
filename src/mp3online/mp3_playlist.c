@@ -16,8 +16,8 @@
 #endif
 
 #define POST_URL_LEN_MAX               256
-#define POST_RESP_BUFSZ                1024
-#define POST_HEADER_BUFSZ              1024
+#define POST_RESP_BUFSZ                2048
+#define POST_HEADER_BUFSZ              2048
 
 extern int check_internet_access(void);
 
@@ -77,10 +77,15 @@ void mp3_playlist_thread_entry(void *params)
 
     /* build header for upload */
     ne_init_cookie();
+    char *cookie_str = ne_get_cookie();
+    RT_ASSERT(cookie_str);
+
     webclient_header_fields_add(session, "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0\r\n");
     webclient_header_fields_add(session, "Content-Length: %d\r\n", strlen(post_data));
     webclient_header_fields_add(session, "Content-Type: application/x-www-form-urlencoded;charset=utf-8\r\n");
-    webclient_header_fields_add(session, "Cookie: %s\r\n", ne_get_cookie());
+    webclient_header_fields_add(session, "Cookie: %s\r\n", cookie_str);
+
+    free(cookie_str);
 
     /* send POST request by default header */
     if ((resp_status = webclient_post(session, mp3_url, post_data, strlen(post_data))) != 200)
@@ -88,6 +93,27 @@ void mp3_playlist_thread_entry(void *params)
         rt_kprintf("webclient POST request failed, response(%d) error.\n", resp_status);
         ret = -RT_ERROR;
         goto __exit;
+    }
+
+    /* handle set cookie */
+    const char *set_cookie = webclient_header_fields_get(session, "Set-Cookie:");
+    if (set_cookie)
+    {
+        char *nmtid = strstr(set_cookie, "NMTID=");
+        if (nmtid)
+        {
+            rt_kprintf("%s: found NMTID=%s\n", __func__, nmtid);
+            char nmtid_value[64] = {0};
+            if (sscanf(nmtid, "NMTID=%[^;]", nmtid_value) > 0)
+            {
+                rt_kprintf("%s: nmtid_value=%s\n", __func__, nmtid_value);
+                ne_set_cookie_item("NMTID", nmtid_value);
+            }
+        }
+    }
+    else
+    {
+        rt_kprintf("Set-Cookie: not found\n");
     }
 
     int content_length = webclient_content_length_get(session);

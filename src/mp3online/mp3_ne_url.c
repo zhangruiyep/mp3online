@@ -3,6 +3,7 @@
 
 #include <rtthread.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,33 +14,37 @@
 #include "mp3_ne_url.h"
 
 static char *g_cookie = NULL;
+static cJSON *g_cookie_json = NULL;
+
 void ne_init_cookie(void)
 {
-    if (g_cookie == NULL)
+    if (g_cookie_json == NULL)
     {
-        g_cookie = (char *)malloc(256);
+        g_cookie_json = cJSON_CreateObject();
+        RT_ASSERT(g_cookie_json);
+
+        uint8_t *nuidValue = ne_create_secret_key(32);
+        char nnidValue[64] = {0};
+        size_t now = time(NULL);
+        sprintf(nnidValue, "%s,%d", nuidValue, now);
+
+        cJSON_AddStringToObject(g_cookie_json, "_ntes_nuid", nuidValue);
+        cJSON_AddStringToObject(g_cookie_json, "_ntes_nnid", nnidValue);
     }
-    RT_ASSERT(g_cookie);
-
-    uint8_t *nuidValue = ne_create_secret_key(32);
-    char nnidValue[64] = {0};
-    size_t now = time(NULL);
-    sprintf(nnidValue, "%s,%d", nuidValue, now);
-
-    sprintf(g_cookie, "_ntes_nuid=%s; _ntes_nnid=%s", nuidValue, nnidValue);
     return;
 }
 
 char *ne_get_cookie(void)
 {
-    return g_cookie;
+    return cJSON_to_cookie_string(g_cookie_json);
 }
 
-void ne_set_cookie(char *cookie)
+void ne_set_cookie_item(const char *name, const char *value)
 {
-    if (g_cookie)
+    rt_kprintf("%s: %s=%s", __func__, name, value);
+    if (g_cookie_json)
     {
-        strcpy(g_cookie, cookie);
+        cJSON_AddStringToObject(g_cookie_json, name, value);
     }
 }
 
@@ -47,6 +52,9 @@ char *cJSON_to_query_string(cJSON *json)
 {
     RT_ASSERT(json);
     char *query_string = (char *)rt_malloc(2048);
+    RT_ASSERT(query_string);
+    memset(query_string, 0, 2048);
+
     cJSON *item = NULL;
     cJSON_ArrayForEach(item, json)
     {
@@ -105,6 +113,31 @@ char *cJSON_to_query_string(cJSON *json)
     /*  remove last '&' */
     query_string[len - 1] = '\0';
     return query_string;
+}
+
+char *cJSON_to_cookie_string(cJSON *json)
+{
+    RT_ASSERT(json);
+    char *cookie_string = (char *)rt_malloc(2048);
+    RT_ASSERT(cookie_string);
+    memset(cookie_string, 0, 2048);
+
+    cJSON *item = NULL;
+    bool first = true;
+    cJSON_ArrayForEach(item, json)
+    {
+        if (!cJSON_IsString(item))
+        {
+            continue;
+        }
+        if (!first)
+        {
+            sprintf(cookie_string, "%s; ", cookie_string);
+        }
+        sprintf(cookie_string, "%s%s=%s", cookie_string, item->string, cJSON_GetStringValue(item));
+        first = false;
+    }
+    return cookie_string;
 }
 
 static void mp3_ne_url_test(int argc, char **argv)
