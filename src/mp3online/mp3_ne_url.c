@@ -10,6 +10,7 @@
 #include <sys/time.h>
 #include <cJSON.h>
 
+#include "mp3_mem.h"
 #include "mp3_ne_sec.h"
 #include "mp3_ne_url.h"
 
@@ -39,7 +40,7 @@ char *ne_get_cookie(void)
     return cJSON_to_cookie_string(g_cookie_json);
 }
 
-void ne_set_cookie_item(const char *name, const char *value)
+static void ne_set_cookie_item(const char *name, const char *value)
 {
     //rt_kprintf("%s: %s=%s", __func__, name, value);
     if (g_cookie_json)
@@ -48,10 +49,30 @@ void ne_set_cookie_item(const char *name, const char *value)
     }
 }
 
+void ne_set_cookie(const char *set_cookie)
+{
+    if (!set_cookie)
+    {
+        return;
+    }
+
+    char *nmtid = strstr(set_cookie, "NMTID=");
+    if (nmtid)
+    {
+        //rt_kprintf("%s: found NMTID=%s\n", __func__, nmtid);
+        char nmtid_value[64] = {0};
+        if (sscanf(nmtid, "NMTID=%[^;]", nmtid_value) > 0)
+        {
+            //rt_kprintf("%s: nmtid_value=%s\n", __func__, nmtid_value);
+            ne_set_cookie_item("NMTID", nmtid_value);
+        }
+    }
+}
+
 char *cJSON_to_query_string(cJSON *json)
 {
     RT_ASSERT(json);
-    char *query_string = (char *)rt_malloc(2048);
+    char *query_string = (char *)mp3_mem_malloc(2048);
     RT_ASSERT(query_string);
     memset(query_string, 0, 2048);
 
@@ -118,7 +139,7 @@ char *cJSON_to_query_string(cJSON *json)
 char *cJSON_to_cookie_string(cJSON *json)
 {
     RT_ASSERT(json);
-    char *cookie_string = (char *)rt_malloc(2048);
+    char *cookie_string = (char *)mp3_mem_malloc(2048);
     RT_ASSERT(cookie_string);
     memset(cookie_string, 0, 2048);
 
