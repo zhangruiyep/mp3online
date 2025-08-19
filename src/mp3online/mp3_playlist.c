@@ -193,20 +193,19 @@ void mp3_playlist_content_handle(const char *content)
     for (int i = 0; i < cJSON_GetArraySize(trackIds); i++)
     {
         cJSON *trackId = cJSON_GetArrayItem(trackIds, i);
-        rt_kprintf("id[%d]=%s\n", i, cJSON_GetStringValue(trackId));
+        rt_kprintf("trackId[%d]=%s\n", i, cJSON_PrintUnformatted(trackId));
+        cJSON *id = cJSON_GetObjectItem(trackId, "id");
+        if (cJSON_IsNumber(id))
+        {
+            double id_val = cJSON_GetNumberValue(id);
+            rt_kprintf("id[%d]=%f\n", i, id_val);
+        }
     }
     cJSON_Delete(json);
 }
 
-cJSON_Hooks mp3_mem_hook =
-{
-    .malloc_fn = mp3_mem_malloc,
-    .free_fn = mp3_mem_free,
-};
-
 static void mp3_playlist(int argc, char **argv)
 {
-    cJSON_InitHooks(&mp3_mem_hook);
     mp3_playlist_thread_init();
 }
 MSH_CMD_EXPORT(mp3_playlist, MP3 playlist test)
