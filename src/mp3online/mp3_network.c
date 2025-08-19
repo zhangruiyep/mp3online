@@ -2,6 +2,7 @@
 #include <rtthread.h>
 #include <string.h>
 #include "lwip/api.h"
+#include "lwip/dns.h"
 #include <webclient.h>
 #include <cJSON.h>
 #if PKG_NETUTILS_NTP
@@ -12,7 +13,6 @@
 #include "mp3_mem.h"
 #include "mp3_network.h"
 
-extern int check_internet_access(void);
 static rt_mq_t g_mp3_network_mq = NULL;
 static rt_thread_t g_mp3_network_thread = NULL;
 
@@ -20,6 +20,33 @@ int mp3_network_post(const char *url, const uint8_t *post_data, size_t post_data
 {
     mp3_nw_msg_t msg = {MP3_NW_CMD_POST, (char *)url, post_data, post_data_len, callback};
     return rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
+}
+
+static void svr_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg)
+{
+    if (ipaddr != NULL)
+    {
+        rt_kprintf("DNS lookup succeeded, IP: %s\n", ipaddr_ntoa(ipaddr));
+    }
+}
+
+int check_internet_access()
+{
+    int r = 0;
+    const char *hostname = MP3_HOST_NAME;
+    ip_addr_t addr = {0};
+
+    {
+        err_t err = dns_gethostbyname(hostname, &addr, svr_found_callback, NULL);
+        if (err != ERR_OK && err != ERR_INPROGRESS)
+        {
+            rt_kprintf("Coud not find %s, please check PAN connection\n", hostname);
+        }
+        else
+            r = 1;
+    }
+
+    return r;
 }
 
 void mp3_network_thread_entry(void *params)

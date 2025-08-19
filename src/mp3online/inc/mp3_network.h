@@ -12,6 +12,8 @@
 #define POST_RESP_BUFSZ                2048
 #define POST_HEADER_BUFSZ              2048
 
+#define MP3_HOST_NAME           "music.163.com"
+
 typedef int (*mp3_nw_rsp_data_callback)(uint8_t *data, size_t len);
 
 typedef enum

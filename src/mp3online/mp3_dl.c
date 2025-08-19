@@ -17,7 +17,7 @@
 #define GET_HEADER_BUFSZ        2048        //头部大小
 #define GET_RESP_BUFSZ          8192        //响应缓冲区大小
 #define GET_URL_LEN_MAX         256         //网址最大长度
-#define MP3_HOST_NAME           "music.163.com"
+
 //#define MP3_HOST_BASE_URL       "https://music.taihe.com/v1"
 //#define MP3_PLAYLIST_API        "/tracklist/info"
 
@@ -72,33 +72,6 @@ void send_read_msg_to_mp3_dl(int read_pos)
     send_msg_to_mp3_dl(&msg);
 }
 
-void svr_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg)
-{
-    if (ipaddr != NULL)
-    {
-        rt_kprintf("DNS lookup succeeded, IP: %s\n", ipaddr_ntoa(ipaddr));
-    }
-}
-
-int check_internet_access()
-{
-    int r = 0;
-    const char *hostname = MP3_HOST_NAME;
-    ip_addr_t addr = {0};
-
-    {
-        err_t err = dns_gethostbyname(hostname, &addr, svr_found_callback, NULL);
-        if (err != ERR_OK && err != ERR_INPROGRESS)
-        {
-            rt_kprintf("Coud not find %s, please check PAN connection\n", hostname);
-        }
-        else
-            r = 1;
-    }
-
-    return r;
-}
-
 void mp3_dl_thread_entry(void *params)
 {
     char *buffer = RT_NULL;
@@ -107,17 +80,6 @@ void mp3_dl_thread_entry(void *params)
     char *mp3_url = RT_NULL;
     int content_length = -1, bytes_read = 0;
     int content_pos = 0;
-
-    while (check_internet_access() == 0)
-    {
-        rt_kprintf("no internet, wait...\n");
-        rt_thread_mdelay(2000);
-    }
-
-#if PKG_NETUTILS_NTP
-    /* sync time before download */
-    ntp_sync_to_rtc(RT_NULL);
-#endif
 
     /* 为 mp3_url 分配空间 */
     mp3_url = rt_calloc(1, GET_URL_LEN_MAX);
