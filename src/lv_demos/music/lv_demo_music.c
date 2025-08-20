@@ -12,6 +12,7 @@
 
 #include "lv_demo_music_main.h"
 #include "lv_demo_music_list.h"
+#include "mp3_playlist.h"
 
 /*********************
  *      DEFINES
@@ -29,7 +30,7 @@
  *  STATIC VARIABLES
  **********************/
 static lv_obj_t *ctrl;
-//static lv_obj_t *list;
+static lv_obj_t *list;
 
 static const char *title_list[] =
 {
@@ -129,7 +130,6 @@ void lv_demo_music(void)
 
     //list = _lv_demo_music_list_create(lv_scr_act());
     ctrl = _lv_demo_music_main_create(lv_scr_act());
-
 }
 
 void lv_demo_music_close(void)
@@ -147,14 +147,20 @@ void lv_demo_music_close(void)
 
 const char *_lv_demo_music_get_title(uint32_t track_id)
 {
+#if 0
     if (track_id >= sizeof(title_list) / sizeof(title_list[0])) return NULL;
     return title_list[track_id];
+#endif
+    mp3_playlist_get_song_title(track_id);
 }
 
 const char *_lv_demo_music_get_artist(uint32_t track_id)
 {
+#if 0
     if (track_id >= sizeof(artist_list) / sizeof(artist_list[0])) return NULL;
     return artist_list[track_id];
+#endif
+    mp3_playlist_get_song_artist(track_id);
 }
 
 const char *_lv_demo_music_get_genre(uint32_t track_id)

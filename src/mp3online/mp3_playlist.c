@@ -12,11 +12,34 @@
 #include "mp3_ne_url.h"
 #include "mp3_mem.h"
 #include "mp3_network.h"
+#include "mp3_song.h"
 
 void mp3_playlist_content_handle(const char *content);
 
 static rt_mq_t g_mp3_playlist_mq = NULL;
 static rt_thread_t g_mp3_playlist_thread = NULL;
+
+/* save id,title,len... in our list  */
+static cJSON *g_mp3_playlist_json = NULL;
+cJSON *mp3_cust_list_get(void)
+{
+    return g_mp3_playlist_json;
+}
+
+char *mp3_playlist_get_song_title(int index)
+{
+    return cJSON_GetStringValue(cJSON_GetObjectItem(cJSON_GetArrayItem(g_mp3_playlist_json, index), "name"));
+}
+
+char *mp3_playlist_get_song_artist(int index)
+{
+    return cJSON_GetStringValue(cJSON_GetObjectItem(cJSON_GetArrayItem(g_mp3_playlist_json, index), "artist"));
+}
+
+int mp3_playlist_get_count(void)
+{
+    return cJSON_GetArraySize(g_mp3_playlist_json);
+}
 
 static int mp3_playlist_content_callback(uint8_t *data, size_t len)
 {
@@ -27,10 +50,31 @@ static int mp3_playlist_content_callback(uint8_t *data, size_t len)
     cJSON *trackIds = cJSON_GetObjectItem(cJSON_GetObjectItem(json, "playlist"), "trackIds");
     RT_ASSERT(trackIds);
 
+    /* save in our playlist */
+    if (g_mp3_playlist_json)
+    {
+        cJSON_Delete(g_mp3_playlist_json);
+    }
+    g_mp3_playlist_json = cJSON_CreateArray();
+
+    for (int i = 0; i < cJSON_GetArraySize(trackIds); i++)
+    {
+        cJSON *id = cJSON_GetObjectItem(cJSON_GetArrayItem(trackIds, i), "id");
+        if (cJSON_IsNumber(id))
+        {
+            double id_val = cJSON_GetNumberValue(id);
+            //rt_kprintf("id[%d]=%f\n", i, id_val);
+
+            cJSON *item = cJSON_CreateObject();
+            cJSON_AddNumberToObject(item, "id", id_val);
+            cJSON_AddItemToArray(g_mp3_playlist_json, item);
+        }
+    }
     cJSON_Delete(json);
+
+    mp3_update_songs_info(g_mp3_playlist_json);
 }
 
-//void mp3_playlist_thread_entry(void *params)
 int mp3_playlist_get(int playlist_id)
 {
     int ret = 0;
@@ -40,7 +84,9 @@ int mp3_playlist_get(int playlist_id)
     char *post_data = NULL;
 
     /* data for post */
-    req_data = cJSON_Parse("{\"id\":\"2819914042\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
+    //req_data = cJSON_Parse("{\"id\":\"2819914042\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
+    //req_data = cJSON_Parse("{\"id\":\"2809577409\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
+    req_data = cJSON_Parse("{\"id\":\"10007604484\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
 
     req_weapi = weapi(req_data);
     if (req_data) cJSON_Delete(req_data);
@@ -58,44 +104,8 @@ int mp3_playlist_get(int playlist_id)
     return ret;
 }
 
-#if 0
-int mp3_playlist_thread_init(void)
-{
-    //g_mp3_playlist_mq = rt_mq_create("mp3_playlist_mq", sizeof(mp3_ctrl_info_t), 60, RT_IPC_FLAG_FIFO);
-    //RT_ASSERT(g_mp3_playlist_mq);
-    g_mp3_playlist_thread = rt_thread_create("mp3plist", mp3_playlist_thread_entry, NULL, 4096, RT_THREAD_PRIORITY_MIDDLE, RT_THREAD_TICK_DEFAULT);
-    RT_ASSERT(g_mp3_playlist_thread);
-    rt_err_t err = rt_thread_startup(g_mp3_playlist_thread);
-    RT_ASSERT(RT_EOK == err);
-}
-
-void mp3_playlist_content_handle(const char *content)
-{
-    cJSON *json = cJSON_Parse(content);
-    RT_ASSERT(json);
-
-    cJSON *trackIds = cJSON_GetObjectItem(cJSON_GetObjectItem(json, "playlist"), "trackIds");
-    RT_ASSERT(trackIds);
-#if 0
-    for (int i = 0; i < cJSON_GetArraySize(trackIds); i++)
-    {
-        cJSON *trackId = cJSON_GetArrayItem(trackIds, i);
-        rt_kprintf("trackId[%d]=%s\n", i, cJSON_PrintUnformatted(trackId));
-        cJSON *id = cJSON_GetObjectItem(trackId, "id");
-        if (cJSON_IsNumber(id))
-        {
-            double id_val = cJSON_GetNumberValue(id);
-            rt_kprintf("id[%d]=%f\n", i, id_val);
-        }
-    }
-#endif
-    cJSON_Delete(json);
-}
-#endif
-
 static void mp3_playlist(int argc, char **argv)
 {
-    //mp3_playlist_thread_init();
     mp3_playlist_get(2819914042);
 }
 MSH_CMD_EXPORT(mp3_playlist, MP3 playlist test)

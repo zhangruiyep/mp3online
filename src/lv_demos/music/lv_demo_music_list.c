@@ -42,6 +42,8 @@ static lv_style_t style_time;
 LV_IMG_DECLARE(img_lv_demo_music_btn_list_play);
 LV_IMG_DECLARE(img_lv_demo_music_btn_list_pause);
 
+static lv_timer_t* list_refresh_timer = NULL;
+
 /**********************
  *      MACROS
  **********************/
@@ -50,6 +52,41 @@ LV_IMG_DECLARE(img_lv_demo_music_btn_list_pause);
  *   GLOBAL FUNCTIONS
  **********************/
 
+extern bool mp3_network_is_connected(void);
+extern int mp3_playlist_get(int playlist_id);
+extern int mp3_playlist_get_count(void);
+static bool music_list_is_inited = false;
+static int music_list_count = 0;
+
+static void lv_music_list_refresh_cb(lv_timer_t * timer)
+{
+    if (!mp3_network_is_connected())
+        return;
+
+    if (!music_list_is_inited)
+    {
+        mp3_playlist_get(10007604484);
+        music_list_is_inited = true;
+    }
+
+    int count = mp3_playlist_get_count();
+    if (music_list_count != count)
+    {
+        uint32_t track_id;
+        for (track_id = 0; _lv_demo_music_get_title(track_id); track_id++)
+        {
+            add_list_btn(list,  track_id);
+        }
+
+    #if LV_DEMO_MUSIC_SQUARE || LV_DEMO_MUSIC_ROUND
+        lv_obj_set_scroll_snap_y(list, LV_SCROLL_SNAP_CENTER);
+    #endif
+
+        _lv_demo_music_list_btn_check(0, true);
+
+        music_list_count = count;
+    }
+}
 
 lv_obj_t *_lv_demo_music_list_create(lv_obj_t *parent)
 {
@@ -113,6 +150,7 @@ lv_obj_t *_lv_demo_music_list_create(lv_obj_t *parent)
     lv_obj_add_style(list, &style_scrollbar, LV_PART_SCROLLBAR);
     lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
 
+#if 0
     uint32_t track_id;
     for (track_id = 0; _lv_demo_music_get_title(track_id); track_id++)
     {
@@ -124,6 +162,8 @@ lv_obj_t *_lv_demo_music_list_create(lv_obj_t *parent)
 #endif
 
     _lv_demo_music_list_btn_check(0, true);
+#endif
+    list_refresh_timer = lv_timer_create(lv_music_list_refresh_cb, 1000, NULL);
 
     return list;
 }

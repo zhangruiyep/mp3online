@@ -16,6 +16,17 @@
 static rt_mq_t g_mp3_network_mq = NULL;
 static rt_thread_t g_mp3_network_thread = NULL;
 
+static bool g_mp3_network_connected = false;
+bool mp3_network_is_connected(void)
+{
+    return g_mp3_network_connected;
+}
+
+void mp3_network_set_connected(bool connected)
+{
+    g_mp3_network_connected = connected;
+}
+
 int mp3_network_post(const char *url, const uint8_t *post_data, size_t post_data_len, mp3_nw_rsp_data_callback callback)
 {
     mp3_nw_msg_t msg = {MP3_NW_CMD_POST, (char *)url, post_data, post_data_len, callback};
@@ -59,12 +70,15 @@ void mp3_network_thread_entry(void *params)
     {
         rt_kprintf("no internet, wait...\n");
         rt_thread_mdelay(2000);
+        mp3_network_set_connected(false);
     }
 
 #if PKG_NETUTILS_NTP
     /* sync time before download */
     ntp_sync_to_rtc(RT_NULL);
 #endif
+
+    mp3_network_set_connected(true);
 
     while (1)
     {

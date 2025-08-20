@@ -9,166 +9,84 @@
 #include "mp3_ne_url.h"
 #include "mp3_mem.h"
 #include "mp3_network.h"
+#include "mp3_song.h"
+
+extern cJSON *mp3_cust_list_get(void);
+
+static int mp3_songs_get_infos(cJSON *json)
+{
+    cJSON *cust_list = mp3_cust_list_get();
+    RT_ASSERT(cust_list);
+
+    cJSON *songs_array = cJSON_GetObjectItem(json, "songs");
+    RT_ASSERT(songs_array);
+
+    int count = cJSON_GetArraySize(songs_array);
+    for (int i = 0; i < count; i++)
+    {
+        cJSON *song_item = cJSON_GetArrayItem(songs_array, i);
+        RT_ASSERT(song_item);
+
+        cJSON *id = cJSON_GetObjectItem(song_item, "id");
+        RT_ASSERT(id);
+        /* find id in cust list */
+        for (int j = 0; j < cJSON_GetArraySize(cust_list); j++)
+        {
+            cJSON *cust_item = cJSON_GetArrayItem(cust_list, j);
+            RT_ASSERT(cust_item);
+            cJSON *cust_item_id = cJSON_GetObjectItem(cust_item, "id");
+            if (cJSON_Compare(cust_item_id, id, 0))
+            {
+                /* add title/artist... to cust_item */
+                cJSON *name = cJSON_Duplicate(cJSON_GetObjectItem(song_item, "name"), 1);
+                cJSON_AddItemToObject(cust_item, "name", name);
+                /* only keep first artist */
+                cJSON *artist = cJSON_GetArrayItem(cJSON_GetObjectItem(song_item, "ar"), 0);
+                cJSON *artist_name = cJSON_Duplicate(cJSON_GetObjectItem(artist, "name"), 1);
+                cJSON_AddItemToObject(cust_item, "artist", artist_name);
+            }
+        }
+    }
+    rt_kprintf("%s:%s\n", __func__, cJSON_PrintUnformatted(cust_list));
+}
 
 static int mp3_songs_content_callback(uint8_t *data, size_t len)
 {
+    rt_kprintf("%s: data[%d]=%s\n", __func__, len, data);
     cJSON *json = cJSON_Parse(data);
     RT_ASSERT(json);
     mp3_mem_free(data);
 
-    //cJSON *trackIds = cJSON_GetObjectItem(cJSON_GetObjectItem(json, "playlist"), "trackIds");
-    //RT_ASSERT(trackIds);
+    mp3_songs_get_infos(json);
 
     cJSON_Delete(json);
 }
 
-#if 0
-int mp3_get_songs_info(cJSON *request)
-{
-    char *mp3_url = NULL;
-    cJSON *req_data = NULL;
-    cJSON *req_weapi = NULL;
-    char *post_data = NULL;
-
-    /* create webclient session and set header response size */
-    session = webclient_session_create(POST_HEADER_BUFSZ);
-    if (session == RT_NULL)
-    {
-        ret = -RT_ENOMEM;
-        goto __exit;
-    }
-
-    mp3_url = (char *)web_malloc(POST_URL_LEN_MAX);
-    if (mp3_url == RT_NULL)
-    {
-        rt_kprintf("No memory for mp3_url!\n");
-        goto __exit;
-    }
-    rt_snprintf(mp3_url, POST_URL_LEN_MAX, "https://music.163.com/weapi/v3/song/detail");
-
-    /* data for post */
-    req_data = cJSON_Parse("{\"id\":\"2819914042\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
-    req_weapi = weapi(req_data);
-    post_data = cJSON_to_query_string(req_weapi);
-
-    /* build header for upload */
-    ne_init_cookie();
-    char *cookie_str = ne_get_cookie();
-    RT_ASSERT(cookie_str);
-
-    webclient_header_fields_add(session, "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0\r\n");
-    webclient_header_fields_add(session, "Content-Length: %d\r\n", strlen(post_data));
-    webclient_header_fields_add(session, "Content-Type: application/x-www-form-urlencoded;charset=utf-8\r\n");
-    webclient_header_fields_add(session, "Cookie: %s\r\n", cookie_str);
-
-    free(cookie_str);
-
-    /* send POST request by default header */
-    if ((resp_status = webclient_post(session, mp3_url, post_data, strlen(post_data))) != 200)
-    {
-        rt_kprintf("webclient POST request failed, response(%d) error.\n", resp_status);
-        ret = -RT_ERROR;
-        goto __exit;
-    }
-
-    /* handle set cookie */
-    const char *set_cookie = webclient_header_fields_get(session, "Set-Cookie:");
-    if (set_cookie)
-    {
-        char *nmtid = strstr(set_cookie, "NMTID=");
-        if (nmtid)
-        {
-            //rt_kprintf("%s: found NMTID=%s\n", __func__, nmtid);
-            char nmtid_value[64] = {0};
-            if (sscanf(nmtid, "NMTID=%[^;]", nmtid_value) > 0)
-            {
-                //rt_kprintf("%s: nmtid_value=%s\n", __func__, nmtid_value);
-                ne_set_cookie_item("NMTID", nmtid_value);
-            }
-        }
-    }
-    else
-    {
-        //rt_kprintf("Set-Cookie: not found\n");
-    }
-
-    int content_length = webclient_content_length_get(session);
-    if (content_length == 0)
-    {
-        rt_kprintf("webclient post response data is null.\n");
-        ret = -RT_ERROR;
-        goto __exit;
-    }
-
-#if 0   //debug print
-    rt_kprintf("webclient post response data: \n");
-    do
-    {
-        bytes_read = webclient_read(session, buffer, POST_RESP_BUFSZ);
-        if (bytes_read <= 0)
-        {
-            break;
-        }
-
-        for (index = 0; index < bytes_read; index++)
-        {
-            rt_kprintf("%c", buffer[index]);
-        }
-    } while (1);
-
-    rt_kprintf("\n");
-#endif
-    char *content = mp3_mem_malloc(content_length + 1);
-    RT_ASSERT(content);
-    memset(content, 0, content_length + 1);
-    bytes_read = webclient_read(session, content, content_length);
-    RT_ASSERT(bytes_read == content_length);
-
-    mp3_playlist_content_handle(content);
-    if (content) mp3_mem_free(content);
-
-__exit:
-    if (session)
-    {
-        webclient_close(session);
-        session = RT_NULL;
-    }
-
-    if (buffer)
-    {
-        web_free(buffer);
-    }
-
-    if (req_data) cJSON_Delete(req_data);
-    if (req_weapi) cJSON_Delete(req_weapi);
-    if (post_data) rt_free(post_data);
-    if (mp3_url) web_free(mp3_url);
-
-    return;
-}
-#endif
-
-int mp3_song_trackIds_handle(cJSON *trackIds)
+int mp3_update_songs_info(cJSON *playlist)
 {
     int ret = 0;
 
     cJSON* request = cJSON_CreateObject();
-    cJSON* c = cJSON_AddArrayToObject(request, "c");
-    cJSON* ids = cJSON_AddArrayToObject(request, "ids");
-    double id_val = 0.0;
+    //cJSON* c = cJSON_AddArrayToObject(request, "c");
+    //cJSON* ids = cJSON_AddArrayToObject(request, "ids");
+    cJSON* c = cJSON_CreateArray();
+    cJSON* ids = cJSON_CreateArray();
 
     /* format post request data to get first 5 songs */
-    int max = MIN(cJSON_GetArraySize(trackIds), 5);
+    int max = cJSON_GetArraySize(playlist);
     //int *id_array = (int *)mp3_mem_malloc(max * sizeof(int));
     //RT_ASSERT(id_array);
+
+    cJSON *song_item = NULL;
+    cJSON *id_item = NULL;
+    double id_val = 0.0;
     for (int i = 0; i < max; i++)
     {
-        cJSON *trackId = cJSON_GetArrayItem(trackIds, i);
-        cJSON *id = cJSON_GetObjectItem(trackId, "id");
-        if (cJSON_IsNumber(id))
+        song_item = cJSON_GetArrayItem(playlist, i);
+        id_item = cJSON_GetObjectItem(song_item, "id");
+        if (cJSON_IsNumber(id_item))
         {
-            id_val = cJSON_GetNumberValue(id);
-            //id_array[i] = (int)id_val;
+            id_val = cJSON_GetNumberValue(id_item);
             cJSON* id_num = cJSON_CreateNumber(id_val);
             cJSON_AddItemToArray(ids, id_num);
 
@@ -178,12 +96,12 @@ int mp3_song_trackIds_handle(cJSON *trackIds)
             cJSON_AddItemToArray(c, c_item);
         }
     }
-    //cJSON* ids = cJSON_CreateIntArray(id_array, max);
-    //cJSON_AddItemToObject(request, "ids", ids);
 
-    rt_kprintf("%s\n", cJSON_PrintUnformatted(c));
+    //rt_kprintf("%s\n", cJSON_PrintUnformatted(c));
+    cJSON_AddStringToObject(request, "c", cJSON_PrintUnformatted(c));
     rt_kprintf("%s\n", cJSON_PrintUnformatted(ids));
-    rt_kprintf("%s\n", cJSON_PrintUnformatted(request));
+    cJSON_AddStringToObject(request, "ids", cJSON_PrintUnformatted(ids));
+    //rt_kprintf("%s\n", cJSON_PrintUnformatted(request));
 
     char *mp3_url = "https://music.163.com/weapi/v3/song/detail";
     cJSON *req_weapi = NULL;
@@ -191,11 +109,12 @@ int mp3_song_trackIds_handle(cJSON *trackIds)
 
     /* data for post */
     req_weapi = weapi(request);
-    if (request) cJSON_Delete(request);
+    //rt_kprintf("%s: req_weapi: %s\n", __func__, cJSON_PrintUnformatted(req_weapi));
 
     post_data = cJSON_to_query_string(req_weapi);
-    if (req_weapi) cJSON_Delete(req_weapi);
+    //rt_kprintf("%s: post: %s\n", __func__, post_data);
 
+    //rt_kprintf("%s: send post\n", __func__);
     /* send POST */
     ret = mp3_network_post(mp3_url, post_data, strlen(post_data), mp3_songs_content_callback);
     if (ret < 0)
@@ -203,5 +122,10 @@ int mp3_song_trackIds_handle(cJSON *trackIds)
         rt_kprintf("%s: post fail %d\n", __func__, ret);
     }
 
+    //rt_kprintf("%s: req_weapi=%x\n", __func__, req_weapi);
+    if (req_weapi) cJSON_Delete(req_weapi);
+    //rt_kprintf("%s: request=%x\n", __func__, request);
+    if (request) cJSON_Delete(request);
+    rt_kprintf("%s: done\n", __func__);
     return ret;
 }

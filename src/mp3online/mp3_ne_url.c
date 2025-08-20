@@ -17,6 +17,8 @@
 static char *g_cookie = NULL;
 static cJSON *g_cookie_json = NULL;
 
+#define QUERY_STRING_LEN_MAX    4096
+
 void ne_init_cookie(void)
 {
     if (g_cookie_json == NULL)
@@ -72,9 +74,9 @@ void ne_set_cookie(const char *set_cookie)
 char *cJSON_to_query_string(cJSON *json)
 {
     RT_ASSERT(json);
-    char *query_string = (char *)mp3_mem_malloc(2048);
+    char *query_string = (char *)mp3_mem_malloc(QUERY_STRING_LEN_MAX);
     RT_ASSERT(query_string);
-    memset(query_string, 0, 2048);
+    memset(query_string, 0, QUERY_STRING_LEN_MAX);
 
     cJSON *item = NULL;
     cJSON_ArrayForEach(item, json)
@@ -85,6 +87,7 @@ char *cJSON_to_query_string(cJSON *json)
         }
 
         sprintf(query_string, "%s%s=", query_string, item->string);
+        RT_ASSERT(strlen(query_string) < QUERY_STRING_LEN_MAX);
         /* handle special char */
         char *src = cJSON_GetStringValue(item);
         char *dst = query_string + strlen(query_string);
@@ -130,6 +133,7 @@ char *cJSON_to_query_string(cJSON *json)
         }
         *dst++ = '&';
     }
+    RT_ASSERT(strlen(query_string) < QUERY_STRING_LEN_MAX);
     int len = strlen(query_string);
     /*  remove last '&' */
     query_string[len - 1] = '\0';
