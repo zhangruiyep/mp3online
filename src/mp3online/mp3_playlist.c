@@ -38,7 +38,17 @@ char *mp3_playlist_get_song_artist(int index)
 
 int mp3_playlist_get_count(void)
 {
-    return cJSON_GetArraySize(g_mp3_playlist_json);
+    /* only count tracks which name is updated */
+    int count = 0;
+    for (int i = 0; i < cJSON_GetArraySize(g_mp3_playlist_json); i++)
+    {
+        char *name = cJSON_GetStringValue(cJSON_GetObjectItem(cJSON_GetArrayItem(g_mp3_playlist_json, i), "name"));
+        if (name && (strlen(name) > 0))
+        {
+            count++;
+        }
+    }
+    return count;
 }
 
 static int mp3_playlist_content_callback(uint8_t *data, size_t len)
@@ -75,7 +85,7 @@ static int mp3_playlist_content_callback(uint8_t *data, size_t len)
     mp3_update_songs_info(g_mp3_playlist_json);
 }
 
-int mp3_playlist_get(int playlist_id)
+int mp3_playlist_get(const char * playlist_id)
 {
     int ret = 0;
     char *mp3_url = "https://music.163.com/weapi/v3/playlist/detail";
@@ -106,7 +116,7 @@ int mp3_playlist_get(int playlist_id)
 
 static void mp3_playlist(int argc, char **argv)
 {
-    mp3_playlist_get(2819914042);
+    mp3_playlist_get("2819914042");
 }
 MSH_CMD_EXPORT(mp3_playlist, MP3 playlist test)
 

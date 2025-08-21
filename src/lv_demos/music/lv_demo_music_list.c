@@ -53,7 +53,7 @@ static lv_timer_t* list_refresh_timer = NULL;
  **********************/
 
 extern bool mp3_network_is_connected(void);
-extern int mp3_playlist_get(int playlist_id);
+extern int mp3_playlist_get(const char * playlist_id);
 extern int mp3_playlist_get_count(void);
 static bool music_list_is_inited = false;
 static int music_list_count = 0;
@@ -65,13 +65,14 @@ static void lv_music_list_refresh_cb(lv_timer_t * timer)
 
     if (!music_list_is_inited)
     {
-        mp3_playlist_get(10007604484);
+        mp3_playlist_get("10007604484");
         music_list_is_inited = true;
     }
 
     int count = mp3_playlist_get_count();
     if (music_list_count != count)
     {
+        rt_kprintf("%s: %d != %d\n", __func__, music_list_count, count);
         uint32_t track_id;
         for (track_id = 0; _lv_demo_music_get_title(track_id); track_id++)
         {
@@ -146,7 +147,8 @@ lv_obj_t *_lv_demo_music_list_create(lv_obj_t *parent)
     list = lv_obj_create(parent);
     lv_obj_remove_style_all(list);
     lv_obj_set_size(list, LV_HOR_RES, LV_VER_RES - LV_DEMO_MUSIC_HANDLE_SIZE);
-    lv_obj_set_y(list, LV_DEMO_MUSIC_HANDLE_SIZE);
+    //lv_obj_set_y(list, LV_DEMO_MUSIC_HANDLE_SIZE);
+    lv_obj_set_y(list, LV_VER_RES);
     lv_obj_add_style(list, &style_scrollbar, LV_PART_SCROLLBAR);
     lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
 

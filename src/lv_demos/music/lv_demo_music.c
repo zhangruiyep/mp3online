@@ -128,8 +128,9 @@ void lv_demo_music(void)
     original_screen_bg_color = lv_obj_get_style_bg_color(lv_scr_act(), 0);
     lv_obj_set_style_bg_color(lv_scr_act(), lv_color_hex(0x343247), 0);
 
-    //list = _lv_demo_music_list_create(lv_scr_act());
+//    list = _lv_demo_music_list_create(lv_scr_act());
     ctrl = _lv_demo_music_main_create(lv_scr_act());
+    list = _lv_demo_music_list_create(ctrl);
 }
 
 void lv_demo_music_close(void)
@@ -137,7 +138,7 @@ void lv_demo_music_close(void)
     /*Delete all aniamtions*/
     lv_anim_del(NULL, NULL);
 
-    //_lv_demo_music_list_close();
+    _lv_demo_music_list_close();
     _lv_demo_music_main_close();
 
     lv_obj_clean(lv_scr_act());
