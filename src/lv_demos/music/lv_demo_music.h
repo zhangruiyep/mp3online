@@ -57,10 +57,14 @@ static lv_font_t *_lv_demo_music_get_font_small(void)
     return lvsf_get_font_from_size(12);
 #endif /* LV_DEMO_MUSIC_LARGE */
 #else
+#if 0
 #if LV_DEMO_MUSIC_LARGE
     return (lv_font_t *)&lv_font_montserrat_16;
 #else
     return (lv_font_t *)&lv_font_montserrat_12;
+#endif
+#else
+    return (lv_font_t *)&lv_font_simsun_16_cjk;
 #endif
 #endif
 }
@@ -74,10 +78,14 @@ static lv_font_t *_lv_demo_music_get_font_medium(void)
     return lvsf_get_font_from_size(16);
 #endif /* LV_DEMO_MUSIC_LARGE */
 #else
+#if 0
 #if LV_DEMO_MUSIC_LARGE
     return (lv_font_t *)&lv_font_montserrat_22;
 #else
     return (lv_font_t *)&lv_font_montserrat_16;
+#endif
+#else
+    return (lv_font_t *)&lv_font_simsun_16_cjk;
 #endif
 #endif
 
@@ -93,10 +101,14 @@ static lv_font_t *_lv_demo_music_get_font_large(void)
     return lvsf_get_font_from_size(16);
 #endif /* LV_DEMO_MUSIC_LARGE */
 #else
+#if 0
 #if LV_DEMO_MUSIC_LARGE
     return (lv_font_t *)&lv_font_montserrat_32;
 #else
     return (lv_font_t *)&lv_font_montserrat_16;
+#endif
+#else
+    return (lv_font_t *)&lv_font_simsun_16_cjk;
 #endif
 #endif
 

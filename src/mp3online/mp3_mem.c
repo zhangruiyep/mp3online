@@ -14,7 +14,7 @@ cJSON_Hooks mp3_mem_hook =
 #endif
 
 L2_CACHE_RET_BSS_SECT_BEGIN(mp3_psram_ret_cache)
-    ALIGN(4) static uint8_t mp3_psram_heap[0x100000] SECTION(STRINGIFY(.bss.l2_cache_ret_bss_mp3_psram_ret_cache));
+    ALIGN(4) static uint8_t mp3_psram_heap[0x200000] SECTION(STRINGIFY(.bss.l2_cache_ret_bss_mp3_psram_ret_cache));
 L2_CACHE_RET_BSS_SECT_END
 
 static struct rt_memheap mp3_memheap;

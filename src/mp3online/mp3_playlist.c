@@ -94,9 +94,9 @@ int mp3_playlist_get(const char * playlist_id)
     char *post_data = NULL;
 
     /* data for post */
-    //req_data = cJSON_Parse("{\"id\":\"2819914042\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
+    req_data = cJSON_Parse("{\"id\":\"2819914042\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
     //req_data = cJSON_Parse("{\"id\":\"2809577409\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
-    req_data = cJSON_Parse("{\"id\":\"10007604484\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
+    //req_data = cJSON_Parse("{\"id\":\"10007604484\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
 
     req_weapi = weapi(req_data);
     if (req_data) cJSON_Delete(req_data);
