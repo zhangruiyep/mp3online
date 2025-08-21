@@ -21,7 +21,8 @@
 //#define MP3_HOST_BASE_URL       "https://music.taihe.com/v1"
 //#define MP3_PLAYLIST_API        "/tracklist/info"
 
-extern uint8_t g_mp3_ring_buffer[1024*16];
+#define MP3_RING_BUFFER_SIZE (1024*16)
+extern uint8_t g_mp3_ring_buffer[MP3_RING_BUFFER_SIZE];
 extern int g_mp3_ring_buffer_write_pos;
 extern int g_mp3_ring_buffer_read_pos;
 
@@ -114,7 +115,8 @@ void mp3_dl_thread_entry(void *params)
         rt_kprintf("content_length==%d\n", content_length);
         g_mp3_dl_content_len = content_length;
 
-        bytes_read = webclient_read(session, g_mp3_ring_buffer, MIN(sizeof(g_mp3_ring_buffer), content_length));
+        bytes_read = webclient_read(session, g_mp3_ring_buffer, MIN(MP3_RING_BUFFER_SIZE, content_length));
+        rt_kprintf("first bytes_read=%d\n", bytes_read);
         if (bytes_read <= 0)
         {
             rt_kprintf("%s bytes_read=%d err!!\n", bytes_read);
@@ -126,6 +128,8 @@ void mp3_dl_thread_entry(void *params)
     {
         rt_kprintf("content_length==0! return NULL\n");
     }
+
+    rt_kprintf("content_pos=%d\n", content_pos);
 
     mp3_dl_msg_t msg = {0};
     while (content_pos < content_length)
@@ -141,18 +145,18 @@ void mp3_dl_thread_entry(void *params)
                 int remain_len = g_mp3_ring_buffer_write_pos - g_mp3_ring_buffer_read_pos;
                 if (remain_len < 0)
                 {
-                    remain_len += sizeof(g_mp3_ring_buffer);
+                    remain_len += MP3_RING_BUFFER_SIZE;
                 }
                 rt_kprintf("%s %d: remain_len=%d\n", __func__, __LINE__, remain_len);
 
-                if (remain_len < sizeof(g_mp3_ring_buffer)/2)
+                if (remain_len < MP3_RING_BUFFER_SIZE/2)
                 {
                     /* make sure dl write in buffer range */
                     rt_kprintf("%s %d: g_mp3_ring_buffer_write_pos=%d\n", __func__, __LINE__, g_mp3_ring_buffer_write_pos);
-                    int dl_len = sizeof(g_mp3_ring_buffer) - g_mp3_ring_buffer_write_pos;
-                    if (dl_len > sizeof(g_mp3_ring_buffer)/2)
+                    int dl_len = MP3_RING_BUFFER_SIZE - g_mp3_ring_buffer_write_pos;
+                    if (dl_len > MP3_RING_BUFFER_SIZE/2)
                     {
-                        dl_len = sizeof(g_mp3_ring_buffer)/2;
+                        dl_len = MP3_RING_BUFFER_SIZE/2;
                     }
                     rt_kprintf("%s %d: dl_len=%d\n", __func__, __LINE__, dl_len);
 
@@ -169,7 +173,7 @@ void mp3_dl_thread_entry(void *params)
                     }
 
                     g_mp3_ring_buffer_write_pos += bytes_read;
-                    if (g_mp3_ring_buffer_write_pos >= sizeof(g_mp3_ring_buffer))
+                    if (g_mp3_ring_buffer_write_pos >= MP3_RING_BUFFER_SIZE)
                     {
                         g_mp3_ring_buffer_write_pos = 0;
                     }
@@ -209,7 +213,7 @@ int mp3_dl_thread_init(void)
 {
     if (g_mp3_dl_state == MP3_DL_STATE_IDLE)
     {
-        g_mp3_dl_mq = rt_mq_create("mp3_dl_mq", sizeof(mp3_ctrl_info_t), 60, RT_IPC_FLAG_FIFO);
+        g_mp3_dl_mq = rt_mq_create("mp3_dl_mq", sizeof(mp3_ctrl_info_t), 10, RT_IPC_FLAG_FIFO);
         RT_ASSERT(g_mp3_dl_mq);
         g_mp3_dl_thread = rt_thread_create("mp3_dl", mp3_dl_thread_entry, NULL, 2048, RT_THREAD_PRIORITY_MIDDLE, RT_THREAD_TICK_DEFAULT);
         RT_ASSERT(g_mp3_dl_thread);
@@ -227,6 +231,7 @@ void mp3_stream_resume(void)
         int retry = 30;
         while (retry-- > 0)
         {
+            rt_kprintf("%s %d: wait dl, retry=%d\n", __func__, __LINE__, retry);
             if (g_mp3_dl_content_len)
             {
                 play_buff(g_mp3_ring_buffer, g_mp3_dl_content_len);

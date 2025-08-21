@@ -29,8 +29,13 @@ void mp3_network_set_connected(bool connected)
 
 int mp3_network_post(const char *url, const uint8_t *post_data, size_t post_data_len, mp3_nw_rsp_data_callback callback)
 {
-    mp3_nw_msg_t msg = {MP3_NW_CMD_POST, (char *)url, post_data, post_data_len, callback};
-    return rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
+    int ret = 0;
+    if (g_mp3_network_mq)
+    {
+        mp3_nw_msg_t msg = {MP3_NW_CMD_POST, (char *)url, post_data, post_data_len, callback};
+        ret = rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
+    }
+    return ret;
 }
 
 static void svr_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg)

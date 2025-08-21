@@ -66,6 +66,7 @@ L2_NON_RET_BSS_SECT_END
 #endif
 //uint8_t g_mp3_ring_buffer[1024*16] = {};
 uint8_t * g_mp3_ring_buffer = NULL;
+#define MP3_RING_BUFFER_SIZE (1024*16)
 int g_mp3_ring_buffer_write_pos = 0;
 int g_mp3_ring_buffer_read_pos = 0;
 
@@ -182,7 +183,7 @@ void mp3_proc_thread_entry(void *params)
 
     if (g_mp3_ring_buffer == NULL)
     {
-        g_mp3_ring_buffer = (uint8_t *)mp3_mem_malloc(1024*16);
+        g_mp3_ring_buffer = (uint8_t *)mp3_mem_malloc(MP3_RING_BUFFER_SIZE);
         RT_ASSERT(g_mp3_ring_buffer != NULL);
     }
 
@@ -202,7 +203,7 @@ void mp3_proc_thread_entry(void *params)
             g_mp3_handle = mp3ctrl_open_buffer(AUDIO_TYPE_LOCAL_MUSIC,  /* audio type, see enum audio_type_t. */
                                         msg.param.filename,  /* buffer */
                                         msg.param.len,  /* buffer len */
-                                        sizeof(g_mp3_ring_buffer),  /* ring buffer size */
+                                        MP3_RING_BUFFER_SIZE,  /* ring buffer size */
                                         play_callback_func,  /* play callback function. */
                                         NULL);
             RT_ASSERT(g_mp3_handle);
