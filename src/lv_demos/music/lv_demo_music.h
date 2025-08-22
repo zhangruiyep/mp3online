@@ -35,6 +35,9 @@ extern "C" {
  * GLOBAL PROTOTYPES
  **********************/
 
+LV_FONT_DECLARE(Qiushui16);
+#define MUSIC_FONT_DEFAULT Qiushui16
+
 void lv_demo_music(void);
 void lv_demo_music_close(void);
 
@@ -64,7 +67,7 @@ static lv_font_t *_lv_demo_music_get_font_small(void)
     return (lv_font_t *)&lv_font_montserrat_12;
 #endif
 #else
-    return (lv_font_t *)&lv_font_simsun_16_cjk;
+    return (lv_font_t *)&MUSIC_FONT_DEFAULT;
 #endif
 #endif
 }
@@ -85,7 +88,7 @@ static lv_font_t *_lv_demo_music_get_font_medium(void)
     return (lv_font_t *)&lv_font_montserrat_16;
 #endif
 #else
-    return (lv_font_t *)&lv_font_simsun_16_cjk;
+    return (lv_font_t *)&MUSIC_FONT_DEFAULT;
 #endif
 #endif
 
@@ -108,7 +111,7 @@ static lv_font_t *_lv_demo_music_get_font_large(void)
     return (lv_font_t *)&lv_font_montserrat_16;
 #endif
 #else
-    return (lv_font_t *)&lv_font_simsun_16_cjk;
+    return (lv_font_t *)&MUSIC_FONT_DEFAULT;
 #endif
 #endif
 
