@@ -59,14 +59,9 @@ INIT_ENV_EXPORT(mnt_init);
 
 /* User code start from here --------------------------------------------------------*/
 /* ringbuff for stream download and play */
-#if 0
-L2_NON_RET_BSS_SECT_BEGIN(mp3_ol)
-L2_NON_RET_BSS_SECT(mp3_ol, ALIGN(4) uint8_t g_mp3_ring_buffer[1024*16]);
-L2_NON_RET_BSS_SECT_END
-#endif
-//uint8_t g_mp3_ring_buffer[1024*16] = {};
-uint8_t * g_mp3_ring_buffer = NULL;
 #define MP3_RING_BUFFER_SIZE (1024*16)
+uint8_t g_mp3_ring_buffer[MP3_RING_BUFFER_SIZE] = {};
+//uint8_t * g_mp3_ring_buffer = NULL;
 int g_mp3_ring_buffer_write_pos = 0;
 int g_mp3_ring_buffer_read_pos = 0;
 
@@ -181,11 +176,13 @@ void mp3_proc_thread_entry(void *params)
     rt_err_t err = RT_ERROR;
     mp3_ctrl_info_t msg;
 
+#if 0
     if (g_mp3_ring_buffer == NULL)
     {
         g_mp3_ring_buffer = (uint8_t *)mp3_mem_malloc(MP3_RING_BUFFER_SIZE);
         RT_ASSERT(g_mp3_ring_buffer != NULL);
     }
+#endif
 
     while (1)
     {
@@ -237,11 +234,13 @@ void mp3_proc_thread_entry(void *params)
         rt_kprintf("[LOCAL MUSIC]RECV END.\n");
     }
 
+#if 0
     if (g_mp3_ring_buffer)
     {
         mp3_mem_free(g_mp3_ring_buffer);
         g_mp3_ring_buffer = NULL;
     }
+#endif
 }
 
 
