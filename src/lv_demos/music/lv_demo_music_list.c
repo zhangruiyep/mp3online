@@ -109,7 +109,9 @@ lv_obj_t *_lv_demo_music_list_create(lv_obj_t *parent)
     static const lv_coord_t grid_rows[] = {22,  17, LV_GRID_TEMPLATE_LAST};
 #endif
     lv_style_init(&style_btn);
-    lv_style_set_bg_opa(&style_btn, LV_OPA_TRANSP);
+    //lv_style_set_bg_opa(&style_btn, LV_OPA_TRANSP);
+    lv_style_set_bg_opa(&style_btn, LV_OPA_COVER);
+    lv_style_set_bg_color(&style_btn, lv_color_hex(0x343247));
     lv_style_set_grid_column_dsc_array(&style_btn, grid_cols);
     lv_style_set_grid_row_dsc_array(&style_btn, grid_rows);
     lv_style_set_grid_row_align(&style_btn, LV_GRID_ALIGN_CENTER);
@@ -139,9 +141,11 @@ lv_obj_t *_lv_demo_music_list_create(lv_obj_t *parent)
     lv_style_set_text_font(&style_artist, font_small);
     lv_style_set_text_color(&style_artist, lv_color_hex(0xb1b0be));
 
+#if 0
     lv_style_init(&style_time);
     lv_style_set_text_font(&style_time, font_medium);
     lv_style_set_text_color(&style_time, lv_color_hex(0xffffff));
+#endif
 
     /*Create an empty transparent container*/
     list = lv_obj_create(parent);
@@ -179,7 +183,7 @@ void _lv_demo_music_list_close(void)
     lv_style_reset(&style_btn_dis);
     lv_style_reset(&style_title);
     lv_style_reset(&style_artist);
-    lv_style_reset(&style_time);
+    //lv_style_reset(&style_time);
 }
 
 void _lv_demo_music_list_btn_check(uint32_t track_id, bool state)
@@ -245,10 +249,12 @@ static lv_obj_t *add_list_btn(lv_obj_t *parent, uint32_t track_id)
     lv_obj_add_style(artist_label, &style_artist, 0);
     lv_obj_set_grid_cell(artist_label, LV_GRID_ALIGN_START, 1, 1, LV_GRID_ALIGN_CENTER, 1, 1);
 
+#if 0
     lv_obj_t *time_label = lv_label_create(btn);
     lv_label_set_text(time_label, time);
     lv_obj_add_style(time_label, &style_time, 0);
     lv_obj_set_grid_cell(time_label, LV_GRID_ALIGN_END, 2, 1, LV_GRID_ALIGN_CENTER, 0, 2);
+#endif
 
     LV_IMG_DECLARE(img_lv_demo_music_list_border);
     lv_obj_t *border = lv_img_create(btn);
