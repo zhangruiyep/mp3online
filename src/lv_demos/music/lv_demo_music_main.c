@@ -75,7 +75,7 @@ static lv_obj_t *main_cont;
 static lv_obj_t *spectrum_obj;
 static lv_obj_t *title_label;
 static lv_obj_t *artist_label;
-static lv_obj_t *genre_label;
+//static lv_obj_t *genre_label;
 static lv_obj_t *time_obj;
 static lv_obj_t *album_img_obj;
 static lv_obj_t *slider_obj;
@@ -464,10 +464,12 @@ static lv_obj_t *create_title_box(lv_obj_t *parent)
     lv_obj_set_style_text_color(artist_label, lv_color_hex(0x504d6d), 0);
     lv_label_set_text(artist_label, _lv_demo_music_get_artist(track_id));
 
+#if 0
     genre_label = lv_label_create(cont);
     lv_obj_set_style_text_font(genre_label, font_small, 0);
     lv_obj_set_style_text_color(genre_label, lv_color_hex(0x8a86b8), 0);
     lv_label_set_text(genre_label, _lv_demo_music_get_genre(track_id));
+#endif
 
     return cont;
 }
@@ -638,7 +640,7 @@ static void track_load(uint32_t id)
 
     lv_label_set_text(title_label, _lv_demo_music_get_title(track_id));
     lv_label_set_text(artist_label, _lv_demo_music_get_artist(track_id));
-    lv_label_set_text(genre_label, _lv_demo_music_get_genre(track_id));
+    //lv_label_set_text(genre_label, _lv_demo_music_get_genre(track_id));
 
     lv_anim_t a;
     lv_anim_init(&a);
