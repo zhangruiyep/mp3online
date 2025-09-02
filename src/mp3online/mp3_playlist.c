@@ -36,6 +36,13 @@ char *mp3_playlist_get_song_artist(int index)
     return cJSON_GetStringValue(cJSON_GetObjectItem(cJSON_GetArrayItem(g_mp3_playlist_json, index), "artist"));
 }
 
+void mp3_playlist_get_song_id(int index, char *id)
+{
+    double id_num = cJSON_GetNumberValue(cJSON_GetObjectItem(cJSON_GetArrayItem(g_mp3_playlist_json, index), "id"));
+    sprintf(id, "%.0f", id_num);
+    return;
+}
+
 int mp3_playlist_get_count(void)
 {
     /* only count tracks which name is updated */

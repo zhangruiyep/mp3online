@@ -6,13 +6,15 @@
 /*********************
  *      INCLUDES
  *********************/
+#include <stdio.h>
 #include "lv_demo_music_main.h"
 #if LV_USE_DEMO_MUSIC
 
-//#include "lv_demo_music_list.h"
+#include "lv_demo_music_list.h"
 #include "assets/spectrum_1.h"
 #include "assets/spectrum_2.h"
 #include "assets/spectrum_3.h"
+#include "mp3_playlist.h"
 
 /*********************
  *      DEFINES
@@ -287,7 +289,7 @@ void _lv_demo_music_play(uint32_t id)
 }
 
 extern void mp3_stream_pause(void);
-extern void mp3_stream_resume(void);
+extern void mp3_stream_resume(char *id);
 
 void _lv_demo_music_resume(void)
 {
@@ -309,7 +311,12 @@ void _lv_demo_music_resume(void)
 
     lv_obj_add_state(play_obj, LV_STATE_CHECKED);
     g_mp3_play_is_end = false;
-    mp3_stream_resume();
+    //mp3_stream_resume();
+    char url[256] = {0};
+    char id_str[32] = {0};
+    mp3_playlist_get_song_id(track_id, id_str);
+    sprintf(url, "http://music.163.com/song/media/outer/url?id=%s.mp3", id_str);
+    mp3_stream_resume(url);
 }
 
 void _lv_demo_music_pause(void)

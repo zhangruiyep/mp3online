@@ -78,20 +78,10 @@ void mp3_dl_thread_entry(void *params)
     char *buffer = RT_NULL;
     int resp_status;
     struct webclient_session *session = RT_NULL;
-    char *mp3_url = RT_NULL;
+    const char *mp3_url = (const char *)params;
+    rt_kprintf("%s: mp3_url=%s\n", __func__, mp3_url);
     int content_length = -1, bytes_read = 0;
     int content_pos = 0;
-
-    /* 为 mp3_url 分配空间 */
-    mp3_url = rt_calloc(1, GET_URL_LEN_MAX);
-    if (mp3_url == RT_NULL)
-    {
-        rt_kprintf("No memory for mp3_url!\n");
-        goto __exit;
-    }
-
-    /* 拼接 GET 网址 */
-    rt_snprintf(mp3_url, GET_URL_LEN_MAX, "http://music.163.com/song/media/outer/url?id=2155423468.mp3");
 
     /* 创建会话并且设置响应的大小 */
     session = webclient_session_create(GET_HEADER_BUFSZ);
@@ -189,12 +179,6 @@ void mp3_dl_thread_entry(void *params)
     rt_kprintf("%s %d: done\n", __func__, __LINE__);
 
 __exit:
-    /* 释放网址空间 */
-    if (mp3_url != RT_NULL)
-    {
-        rt_free(mp3_url);
-        mp3_url = RT_NULL;
-    }
 
     /* 关闭会话 */
     if (session != RT_NULL)
@@ -209,13 +193,13 @@ __exit:
     return;
 }
 
-int mp3_dl_thread_init(void)
+int mp3_dl_thread_init(const char *mp3_url)
 {
     if (g_mp3_dl_state == MP3_DL_STATE_IDLE)
     {
         g_mp3_dl_mq = rt_mq_create("mp3_dl_mq", sizeof(mp3_ctrl_info_t), 10, RT_IPC_FLAG_FIFO);
         RT_ASSERT(g_mp3_dl_mq);
-        g_mp3_dl_thread = rt_thread_create("mp3_dl", mp3_dl_thread_entry, NULL, 2048, RT_THREAD_PRIORITY_MIDDLE, RT_THREAD_TICK_DEFAULT);
+        g_mp3_dl_thread = rt_thread_create("mp3_dl", mp3_dl_thread_entry, (void *)mp3_url, 2048, RT_THREAD_PRIORITY_MIDDLE, RT_THREAD_TICK_DEFAULT);
         RT_ASSERT(g_mp3_dl_thread);
         rt_err_t err = rt_thread_startup(g_mp3_dl_thread);
         RT_ASSERT(RT_EOK == err);
@@ -223,9 +207,9 @@ int mp3_dl_thread_init(void)
     }
 }
 
-void mp3_stream_resume(void)
+void mp3_stream_resume(const char *mp3_url)
 {
-    mp3_dl_thread_init();
+    mp3_dl_thread_init(mp3_url);
     if (g_mp3_dl_state = MP3_DL_STATE_INIT)
     {
         int retry = 30;
@@ -256,7 +240,7 @@ void mp3_stream_pause(void)
 
 static void mp3play(int argc, char **argv)
 {
-    mp3_dl_thread_init();
+    mp3_dl_thread_init("http://music.163.com/song/media/outer/url?id=2155423468.mp3");
     int retry = 30;
     while (retry-- > 0)
     {
