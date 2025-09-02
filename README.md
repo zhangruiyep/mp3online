@@ -4,6 +4,8 @@
 
 ringbuffer大小默认16KB。buffer越大，网络不稳定导致卡顿的概率越小。网络足够好的情况下，buffer大约6~8KB就够了。
 
+支持在线歌单，实现原理主要参考了listen1_chrome_extension项目。目前只支持了一个音乐平台，其它音乐平台原理类似。
+
 基于以下示例程序修改：
 - bt_pan: 提供基于蓝牙PAN的网络接入。
 - local_music: 提供MP3播放功能。修改点：默认的文件播放改为BUFFER播放，并支持了ringbuffer。
@@ -12,6 +14,7 @@ ringbuffer大小默认16KB。buffer越大，网络不稳定导致卡顿的概率
 主要功能实现：
 - mp3online:
     - mp3_dl.c: MP3下载功能。
+    - mp3_playlist.c: 获取播放列表功能。
 
 ## 工程编译及下载：
 由于sifli-sdk MP3播放的BUFFER是完整的文件，不支持边下载边播放，因此修改了部分文件，用于支持ringbuffer方式播放。
@@ -19,3 +22,7 @@ ringbuffer大小默认16KB。buffer越大，网络不稳定导致卡顿的概率
 基于sifli-sdk release-v2.4分支，主要修改了audio_mp3ctrl.c文件，可以搜索MP3_RINGBUFF宏定义，比较修改点合入。
 
 编译下载方法参考sifli-sdk其它示例工程，所需文件在project目录下。
+
+## 免责声明：
+本项目代码仅供学习和研究使用，禁止用于任何商业用途。
+作者不对因使用本项目代码导致的版权纠纷、技术故障或商业损失承担任何责任。
