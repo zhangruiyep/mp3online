@@ -83,7 +83,7 @@ static void lv_music_list_refresh_cb(lv_timer_t * timer)
         lv_obj_set_scroll_snap_y(list, LV_SCROLL_SNAP_CENTER);
     #endif
 
-        _lv_demo_music_list_btn_check(0, true);
+        //_lv_demo_music_list_btn_check(0, true);
 
         music_list_count = count;
     }
@@ -230,10 +230,12 @@ static lv_obj_t *add_list_btn(lv_obj_t *parent, uint32_t track_id)
     lv_obj_add_style(btn, &style_btn_dis, LV_STATE_DISABLED);
     lv_obj_add_event_cb(btn, btn_click_event_cb, LV_EVENT_CLICKED, NULL);
 
+#if 0
     if (track_id >= 3)
     {
         lv_obj_add_state(btn, LV_STATE_DISABLED);
     }
+#endif
 
     lv_obj_t *icon = lv_img_create(btn);
     lv_img_set_src(icon, &img_lv_demo_music_btn_list_play);
@@ -274,6 +276,19 @@ static void btn_click_event_cb(lv_event_t *e)
     uint32_t idx = lv_obj_get_child_id(btn);
 
     _lv_demo_music_play(idx);
+    /* set all buttons to unchecked except the clicked one */
+    uint32_t child_cnt = lv_obj_get_child_cnt(lv_obj_get_parent(btn));
+    for (int i = 0; i < child_cnt; i++)
+    {
+        if (i == idx)
+        {
+            _lv_demo_music_list_btn_check(i, true);
+        }
+        else
+        {
+            _lv_demo_music_list_btn_check(i, false);
+        }
+    }
 }
 #endif /*LV_USE_DEMO_MUSIC*/
 

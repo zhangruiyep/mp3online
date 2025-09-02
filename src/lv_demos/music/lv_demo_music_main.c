@@ -628,7 +628,7 @@ static void track_load(uint32_t id)
     lv_slider_set_value(slider_obj, 0, LV_ANIM_OFF);
     lv_label_set_text(time_obj, "0:00");
 
-    if (id == track_id) return;
+    //if (id == track_id) return;   //always refresh
     bool next = false;
     if ((track_id + 1) % ACTIVE_TRACK_CNT == id) next = true;
 
