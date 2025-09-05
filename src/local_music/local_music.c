@@ -194,7 +194,7 @@ void mp3_proc_thread_entry(void *params)
         case CMD_MP3_PALY:
             if (g_mp3_handle)
             {
-                /* Close fistly if mp3 is playing. */
+                /* Close firstly if mp3 is playing. */
                 mp3ctrl_close(g_mp3_handle);
             }
             g_mp3_handle = mp3ctrl_open_buffer(AUDIO_TYPE_LOCAL_MUSIC,  /* audio type, see enum audio_type_t. */

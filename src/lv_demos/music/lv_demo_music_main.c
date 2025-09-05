@@ -89,7 +89,8 @@ static lv_timer_t   *sec_counter_timer;
 static lv_timer_t *stop_start_anim_timer;
 static const lv_font_t *font_small;
 static const lv_font_t *font_large;
-static uint32_t track_id;
+//static uint32_t track_id;
+uint32_t track_id;
 static bool playing;
 static bool start_anim;
 static lv_coord_t start_anim_values[40];
@@ -99,6 +100,7 @@ static uint32_t spectrum_len;
 static const uint16_t rnd_array[30] = {994, 285, 553, 11, 792, 707, 966, 641, 852, 827, 44, 352, 146, 581, 490, 80, 729, 58, 695, 940, 724, 561, 124, 653, 27, 292, 557, 506, 382, 199};
 
 extern bool g_mp3_play_is_end;
+extern int music_list_count;
 
 /**********************
  *      MACROS
@@ -257,13 +259,15 @@ void _lv_demo_music_album_next(bool next)
     if (next)
     {
         id++;
-        if (id >= ACTIVE_TRACK_CNT) id = 0;
+        //if (id >= ACTIVE_TRACK_CNT) id = 0;
+        if (id >= music_list_count) id = 0;
     }
     else
     {
         if (id == 0)
         {
-            id = ACTIVE_TRACK_CNT - 1;
+            //id = ACTIVE_TRACK_CNT - 1;
+            id = music_list_count - 1;
         }
         else
         {
@@ -271,7 +275,7 @@ void _lv_demo_music_album_next(bool next)
         }
     }
 
-    if (playing)
+    if (!playing)
     {
         _lv_demo_music_play(id);
     }
@@ -632,11 +636,11 @@ static void track_load(uint32_t id)
     bool next = false;
     if ((track_id + 1) % ACTIVE_TRACK_CNT == id) next = true;
 
-    //_lv_demo_music_list_btn_check(track_id, false);
+    _lv_demo_music_list_btn_check(track_id, false);
 
     track_id = id;
 
-    //_lv_demo_music_list_btn_check(id, true);
+    _lv_demo_music_list_btn_check(id, true);
 
     lv_label_set_text(title_label, _lv_demo_music_get_title(track_id));
     lv_label_set_text(artist_label, _lv_demo_music_get_artist(track_id));
@@ -985,6 +989,7 @@ static void timer_cb(lv_timer_t *t)
     if (g_mp3_play_is_end)  // set by mp3 play thread
     {
         _lv_demo_music_pause();
+        _lv_demo_music_album_next(true);
     }
 #endif
 }

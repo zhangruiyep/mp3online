@@ -189,12 +189,14 @@ __exit:
     g_mp3_dl_mq = RT_NULL;
 
     g_mp3_dl_state = MP3_DL_STATE_IDLE;
+    g_mp3_dl_content_len = 0;
 
     return;
 }
 
 int mp3_dl_thread_init(const char *mp3_url)
 {
+    rt_kprintf("%s %d: g_mp3_dl_state=%d\n", __func__, __LINE__, g_mp3_dl_state);
     if (g_mp3_dl_state == MP3_DL_STATE_IDLE)
     {
         g_mp3_dl_mq = rt_mq_create("mp3_dl_mq", sizeof(mp3_ctrl_info_t), 10, RT_IPC_FLAG_FIFO);
@@ -210,7 +212,7 @@ int mp3_dl_thread_init(const char *mp3_url)
 void mp3_stream_resume(const char *mp3_url)
 {
     mp3_dl_thread_init(mp3_url);
-    if (g_mp3_dl_state = MP3_DL_STATE_INIT)
+    if (g_mp3_dl_state == MP3_DL_STATE_INIT)
     {
         int retry = 30;
         while (retry-- > 0)
@@ -224,7 +226,7 @@ void mp3_stream_resume(const char *mp3_url)
             rt_thread_mdelay(1000);
         }
     }
-    else if (g_mp3_dl_state = MP3_DL_STATE_DLING)
+    else if (g_mp3_dl_state == MP3_DL_STATE_DLING)
     {
         play_resume();
     }
@@ -232,7 +234,7 @@ void mp3_stream_resume(const char *mp3_url)
 
 void mp3_stream_pause(void)
 {
-    if (g_mp3_dl_state = MP3_DL_STATE_DLING)
+    if (g_mp3_dl_state == MP3_DL_STATE_DLING)
     {
         play_pause();
     }

@@ -56,7 +56,12 @@ extern bool mp3_network_is_connected(void);
 extern int mp3_playlist_get(const char * playlist_id);
 extern int mp3_playlist_get_count(void);
 static bool music_list_is_inited = false;
-static int music_list_count = 0;
+//static int music_list_count = 0;
+int music_list_count = 0;
+extern uint32_t track_id;
+//static uint32_t current_checked_track_id;
+//void _lv_demo_music_list_btns_check(uint32_t idx);
+
 
 static void lv_music_list_refresh_cb(lv_timer_t * timer)
 {
@@ -87,6 +92,14 @@ static void lv_music_list_refresh_cb(lv_timer_t * timer)
 
         music_list_count = count;
     }
+
+#if 0
+    if (current_checked_track_id != track_id)
+    {
+        _lv_demo_music_list_btns_check(track_id);
+        current_checked_track_id = track_id;
+    }
+#endif
 }
 
 lv_obj_t *_lv_demo_music_list_create(lv_obj_t *parent)
@@ -204,6 +217,23 @@ void _lv_demo_music_list_btn_check(uint32_t track_id, bool state)
     }
 }
 
+void _lv_demo_music_list_btns_check(uint32_t idx)
+{
+    /* set all buttons to unchecked except the clicked one */
+    uint32_t child_cnt = lv_obj_get_child_cnt(list);
+    for (int i = 0; i < child_cnt; i++)
+    {
+        if (i == idx)
+        {
+            _lv_demo_music_list_btn_check(i, true);
+        }
+        else
+        {
+            _lv_demo_music_list_btn_check(i, false);
+        }
+    }
+}
+
 /**********************
  *   STATIC FUNCTIONS
  **********************/
@@ -276,19 +306,8 @@ static void btn_click_event_cb(lv_event_t *e)
     uint32_t idx = lv_obj_get_child_id(btn);
 
     _lv_demo_music_play(idx);
-    /* set all buttons to unchecked except the clicked one */
-    uint32_t child_cnt = lv_obj_get_child_cnt(lv_obj_get_parent(btn));
-    for (int i = 0; i < child_cnt; i++)
-    {
-        if (i == idx)
-        {
-            _lv_demo_music_list_btn_check(i, true);
-        }
-        else
-        {
-            _lv_demo_music_list_btn_check(i, false);
-        }
-    }
+
+    //_lv_demo_music_list_btns_check(idx);
 }
 #endif /*LV_USE_DEMO_MUSIC*/
 
