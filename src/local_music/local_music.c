@@ -15,6 +15,7 @@
 
 /* notify download thread play progress */
 extern void send_read_msg_to_mp3_dl(int read_pos);
+extern void send_stop_msg_to_mp3_dl(void);
 
 /* Common functions for RT-Thread based platform -----------------------------------------------*/
 
@@ -159,6 +160,7 @@ static int play_callback_func(audio_server_callback_cmt_t cmd, void *callback_us
             /* To close audio client when playing has been completed. */
             g_mp3_play_is_end = true;
             play_stop();
+            send_stop_msg_to_mp3_dl();
             break;
 
         default:

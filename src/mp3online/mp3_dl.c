@@ -29,6 +29,7 @@ extern int g_mp3_ring_buffer_read_pos;
 typedef enum
 {
     MP3_DL_CMD_READ_MORE,
+    MP3_DL_CMD_STOP,
 } mp3_dl_cmd_t;
 
 typedef struct
@@ -69,6 +70,15 @@ void send_read_msg_to_mp3_dl(int read_pos)
     mp3_dl_msg_t msg = {0};
     msg.cmd = MP3_DL_CMD_READ_MORE;
     msg.data.read_pos = read_pos;
+
+    send_msg_to_mp3_dl(&msg);
+}
+
+void send_stop_msg_to_mp3_dl(void)
+{
+    rt_kprintf("%s in\n", __func__);
+    mp3_dl_msg_t msg = {0};
+    msg.cmd = MP3_DL_CMD_STOP;
 
     send_msg_to_mp3_dl(&msg);
 }
@@ -172,6 +182,9 @@ void mp3_dl_thread_entry(void *params)
                     rt_kprintf("%s %d: content_pos=%d\n", __func__, __LINE__, content_pos);
                 }
                 break;
+            case MP3_DL_CMD_STOP:
+                rt_kprintf("%s %d: stop\n", __func__, __LINE__);
+                goto __exit;
             default:
                 break;
         }
