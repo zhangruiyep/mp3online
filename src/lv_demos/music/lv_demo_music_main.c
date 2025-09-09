@@ -285,8 +285,16 @@ void _lv_demo_music_album_next(bool next)
     }
 }
 
+extern void play_stop(void);
 void _lv_demo_music_play(uint32_t id)
 {
+    // if not current playing id, stop it first
+    if (id != track_id)
+    {
+        play_stop();
+        rt_thread_mdelay(1000);
+    }
+
     track_load(id);
 
     _lv_demo_music_resume();

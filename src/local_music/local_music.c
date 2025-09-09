@@ -162,7 +162,10 @@ static int play_callback_func(audio_server_callback_cmt_t cmd, void *callback_us
             play_stop();
             send_stop_msg_to_mp3_dl();
             break;
-
+        case as_callback_cmd_closed:
+            g_mp3_play_is_end = true;
+            send_stop_msg_to_mp3_dl();
+            break;
         default:
             break;
     }
