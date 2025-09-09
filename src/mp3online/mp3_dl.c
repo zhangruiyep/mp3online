@@ -212,7 +212,7 @@ int mp3_dl_thread_init(const char *mp3_url)
     rt_kprintf("%s %d: g_mp3_dl_state=%d\n", __func__, __LINE__, g_mp3_dl_state);
     if (g_mp3_dl_state == MP3_DL_STATE_IDLE)
     {
-        g_mp3_dl_mq = rt_mq_create("mp3_dl_mq", sizeof(mp3_ctrl_info_t), 10, RT_IPC_FLAG_FIFO);
+        g_mp3_dl_mq = rt_mq_create("mp3_dl_mq", sizeof(mp3_ctrl_info_t), 40, RT_IPC_FLAG_FIFO);
         RT_ASSERT(g_mp3_dl_mq);
         g_mp3_dl_thread = rt_thread_create("mp3_dl", mp3_dl_thread_entry, (void *)mp3_url, 2048, RT_THREAD_PRIORITY_MIDDLE, RT_THREAD_TICK_DEFAULT);
         RT_ASSERT(g_mp3_dl_thread);
