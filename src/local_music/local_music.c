@@ -162,10 +162,13 @@ static int play_callback_func(audio_server_callback_cmt_t cmd, void *callback_us
             play_stop();
             send_stop_msg_to_mp3_dl();
             break;
+#if 0
         case as_callback_cmd_closed:
-            g_mp3_play_is_end = true;
-            send_stop_msg_to_mp3_dl();
+            /* audio_close() be called, I do not know this is just pause or real close */
+            //g_mp3_play_is_end = true;
+            //send_stop_msg_to_mp3_dl();
             break;
+#endif
         default:
             break;
     }
@@ -223,6 +226,7 @@ void mp3_proc_thread_entry(void *params)
         case CMD_MP3_STOP:
             mp3ctrl_close(g_mp3_handle);
             g_mp3_handle = NULL;
+            g_mp3_play_is_end = true;
             break;
 
         case CMD_MP3_PAUSE:

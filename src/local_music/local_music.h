@@ -25,5 +25,6 @@ typedef struct
 void play_buff(const char *buff, int len);
 void play_pause(void);
 void play_resume(void);
+void play_stop(void);
 
 #endif

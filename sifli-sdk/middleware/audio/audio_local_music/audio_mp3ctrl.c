@@ -1733,6 +1733,9 @@ PUBLIC_API int mp3ctrl_close(mp3ctrl_handle handle)
     void *stack_addr = handle->stack_addr;
     rt_thread_t thread = (rt_thread_t)handle->thread;
 #endif
+#if MP3_RINGBUFF
+    g_ring_buf_size = 0;
+#endif
     event = handle->api_event;
     handle->magic = ~MP3_HANDLE_MAGIC; //now allow use handle lator
     rt_event_send(handle->event, MP3_EVENT_FLAG_CLOSE);

@@ -285,23 +285,31 @@ void _lv_demo_music_album_next(bool next)
     }
 }
 
-extern void play_stop(void);
+extern void mp3_stream_pause(void);
+extern void mp3_stream_resume(void);
+extern void mp3_stream_start(const char *mp3_url);
+extern void mp3_stream_stop(void);
+
 void _lv_demo_music_play(uint32_t id)
 {
     // if not current playing id, stop it first
     if (id != track_id)
     {
-        play_stop();
+        mp3_stream_stop();
         rt_thread_mdelay(1000);
     }
 
     track_load(id);
 
+    g_mp3_play_is_end = false;
+    char url[256] = {0};
+    char id_str[32] = {0};
+    mp3_playlist_get_song_id(track_id, id_str);
+    sprintf(url, "http://music.163.com/song/media/outer/url?id=%s.mp3", id_str);
+    mp3_stream_start(url);
+
     _lv_demo_music_resume();
 }
-
-extern void mp3_stream_pause(void);
-extern void mp3_stream_resume(char *id);
 
 void _lv_demo_music_resume(void)
 {
@@ -322,13 +330,7 @@ void _lv_demo_music_resume(void)
     lv_slider_set_range(slider_obj, 0, _lv_demo_music_get_track_length(track_id));
 
     lv_obj_add_state(play_obj, LV_STATE_CHECKED);
-    g_mp3_play_is_end = false;
-    //mp3_stream_resume();
-    char url[256] = {0};
-    char id_str[32] = {0};
-    mp3_playlist_get_song_id(track_id, id_str);
-    sprintf(url, "http://music.163.com/song/media/outer/url?id=%s.mp3", id_str);
-    mp3_stream_resume(url);
+    mp3_stream_resume();
 }
 
 void _lv_demo_music_pause(void)
