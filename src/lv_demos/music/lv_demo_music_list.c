@@ -59,9 +59,6 @@ static bool music_list_is_inited = false;
 //static int music_list_count = 0;
 int music_list_count = 0;
 extern uint32_t track_id;
-//static uint32_t current_checked_track_id;
-//void _lv_demo_music_list_btns_check(uint32_t idx);
-
 
 static void lv_music_list_refresh_cb(lv_timer_t * timer)
 {
@@ -91,15 +88,9 @@ static void lv_music_list_refresh_cb(lv_timer_t * timer)
         //_lv_demo_music_list_btn_check(0, true);
 
         music_list_count = count;
+        /* auto play the first song */
+        _lv_demo_music_play(0);
     }
-
-#if 0
-    if (current_checked_track_id != track_id)
-    {
-        _lv_demo_music_list_btns_check(track_id);
-        current_checked_track_id = track_id;
-    }
-#endif
 }
 
 lv_obj_t *_lv_demo_music_list_create(lv_obj_t *parent)
@@ -306,8 +297,6 @@ static void btn_click_event_cb(lv_event_t *e)
     uint32_t idx = lv_obj_get_child_id(btn);
 
     _lv_demo_music_play(idx);
-
-    //_lv_demo_music_list_btns_check(idx);
 }
 #endif /*LV_USE_DEMO_MUSIC*/
 
