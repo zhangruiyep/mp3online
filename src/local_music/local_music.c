@@ -139,6 +139,16 @@ void play_resume(void)
     send_msg_to_mp3_proc(&info);
 }
 
+uint32_t play_get_total_seconds(void)
+{
+    uint32_t seconds = 0;
+    if (g_mp3_handle)
+    {
+        mp3ctrl_get_total_seconds(g_mp3_handle, &seconds);
+    }
+    return seconds;
+}
+
 /**
  * @brief callback function for mp3ctrl_open.
  */

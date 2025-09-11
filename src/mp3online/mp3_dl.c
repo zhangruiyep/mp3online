@@ -278,6 +278,11 @@ void mp3_stream_stop(void)
     }
 }
 
+uint32_t mp3_stream_get_total_seconds(void)
+{
+    return play_get_total_seconds();
+}
+
 static void mp3play(int argc, char **argv)
 {
     mp3_dl_thread_init("http://music.163.com/song/media/outer/url?id=2155423468.mp3");

@@ -69,4 +69,7 @@ int mp3ctrl_seek(mp3ctrl_handle handle, uint32_t seconds);
 int mp3ctrl_getinfo(const char *filename, mp3_info_t *info);
 int mp3_get_id3_start(const char *filename, mp3_id3_info_t *info);
 void mp3_get_id3_end(mp3_id3_info_t *info);
+#if MP3_RINGBUFF
+int mp3ctrl_get_total_seconds(mp3ctrl_handle handle, uint32_t *total_seconds);
+#endif
 #endif

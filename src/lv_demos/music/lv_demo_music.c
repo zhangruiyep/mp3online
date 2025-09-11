@@ -170,10 +170,15 @@ const char *_lv_demo_music_get_genre(uint32_t track_id)
     return genre_list[track_id];
 }
 
+
+extern uint32_t mp3_stream_get_total_seconds(void);
 uint32_t _lv_demo_music_get_track_length(uint32_t track_id)
 {
+#if 0
     if (track_id >= sizeof(time_list) / sizeof(time_list[0])) return 0;
     return time_list[track_id];
+#endif
+    return mp3_stream_get_total_seconds();
 }
 
 #endif /*LV_USE_DEMO_MUSIC*/

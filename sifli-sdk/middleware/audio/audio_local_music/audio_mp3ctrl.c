@@ -1969,6 +1969,17 @@ Exit:
 #endif
 }
 
+#if MP3_RINGBUFF
+PUBLIC_API int mp3ctrl_get_total_seconds(mp3ctrl_handle handle, uint32_t *total_seconds)
+{
+    if (handle && total_seconds)
+    {
+        *total_seconds = handle->total_time_in_seconds;
+    }
+    return 0;
+}
+#endif
+
 PUBLIC_API int mp3ctrl_seek(mp3ctrl_handle handle, uint32_t seconds)
 {
 
