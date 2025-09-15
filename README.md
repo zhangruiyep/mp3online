@@ -15,13 +15,17 @@ ringbuffer大小默认16KB。buffer越大，网络不稳定导致卡顿的概率
 - mp3online:
     - mp3_dl.c: MP3下载功能。
     - mp3_playlist.c: 获取播放列表功能。
+    - mp3_jpg.c: jpeg图片下载显示相关功能。
 
 ## 工程编译及下载：
-由于sifli-sdk MP3播放的BUFFER是完整的文件，不支持边下载边播放，因此修改了部分文件，用于支持ringbuffer方式播放。
-修改的文件在sifli-sdk目录下。
-基于sifli-sdk release-v2.4分支，主要修改了audio_mp3ctrl.c文件，可以搜索MP3_RINGBUFF宏定义，比较修改点合入。
+**注意：如遇编译不通过，请重点看此节说明。**
 
-编译下载方法参考sifli-sdk其它示例工程，所需文件在project目录下。
+- 本项目使用的sifli-sdk版本为release/v2.4分支的v2.4.2。
+- 本项目的sifli-sdk目录下是需要修改的文件，可自行与完整的sifli-sdk对比合入。
+- 由于sifli-sdk MP3播放的BUFFER是完整的文件，不支持边下载边播放，因此修改了部分文件，用于支持ringbuffer方式播放。主要修改了audio_mp3ctrl.c文件，可以搜索MP3_RINGBUFF宏定义，比较修改点合入。
+- 由于sifli-sdk 默认不支持动态下载的jpeg图片解码。因此修改了lv_gpu.c文件，可以搜索LV_GPU_SOFT_DECODER宏定义，比较修改点合入。
+
+具体编译下载方法参考sifli-sdk其它示例工程，所需文件在project目录下。
 
 ## 免责声明：
 本项目代码仅供学习和研究使用，禁止用于任何商业用途。

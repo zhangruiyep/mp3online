@@ -17,6 +17,10 @@ config MP3_RINGBUFF
     depends on AUDIO_LOCAL_MUSIC
     default y
 
+config LV_GPU_SOFT_DECODER
+    bool "enable software decoder for jpeg dynamic load"
+    default y
+
 config WEBCLIENT_DEBUG
     bool "enable webclient debug"
     default n
