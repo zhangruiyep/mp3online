@@ -163,7 +163,7 @@ void mp3_dl_thread_entry(void *params)
                     bytes_read = webclient_read(session, &g_mp3_ring_buffer[g_mp3_ring_buffer_write_pos], dl_len);
                     if (bytes_read <= 0)
                     {
-                        rt_kprintf("%s bytes_read=%d err!!\n", bytes_read);
+                        rt_kprintf("%s %d: bytes_read=%d err!\n", __func__, __LINE__, bytes_read);
                         break;
                     }
                     rt_kprintf("%s %d: bytes_read=%d\n", __func__, __LINE__, bytes_read);
