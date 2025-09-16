@@ -44,6 +44,9 @@ static int mp3_songs_get_infos(cJSON *json)
                 cJSON *artist = cJSON_GetArrayItem(cJSON_GetObjectItem(song_item, "ar"), 0);
                 cJSON *artist_name = cJSON_Duplicate(cJSON_GetObjectItem(artist, "name"), 1);
                 cJSON_AddItemToObject(cust_item, "artist", artist_name);
+                /* add picUrl */
+                cJSON *pic_url = cJSON_Duplicate(cJSON_GetObjectItem(cJSON_GetObjectItem(song_item, "al"), "picUrl"), 1);
+                cJSON_AddItemToObject(cust_item, "picUrl", pic_url);
             }
         }
     }

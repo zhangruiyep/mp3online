@@ -223,7 +223,7 @@ void mp3_proc_thread_entry(void *params)
                                         NULL);
             RT_ASSERT(g_mp3_handle);
 
-            audio_server_set_private_volume(AUDIO_TYPE_LOCAL_MUSIC, 3); /* default volume */
+            audio_server_set_private_volume(AUDIO_TYPE_LOCAL_MUSIC, 1); /* default volume */
 
             /* Set loop times. */
             mp3ctrl_ioctl(g_mp3_handle,   /* handle returned by mp3ctrl_open. */

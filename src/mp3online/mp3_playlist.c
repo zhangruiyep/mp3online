@@ -43,6 +43,13 @@ void mp3_playlist_get_song_id(int index, char *id)
     return;
 }
 
+void mp3_playlist_get_pic_url(int index, char *url)
+{
+    char *pic_url = cJSON_GetStringValue(cJSON_GetObjectItem(cJSON_GetArrayItem(g_mp3_playlist_json, index), "picUrl"));
+    strcpy(url, pic_url);
+    return;
+}
+
 int mp3_playlist_get_count(void)
 {
     /* only count tracks which name is updated */

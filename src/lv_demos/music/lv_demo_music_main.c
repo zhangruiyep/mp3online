@@ -289,9 +289,13 @@ extern void mp3_stream_pause(void);
 extern void mp3_stream_resume(void);
 extern void mp3_stream_start(const char *mp3_url);
 extern void mp3_stream_stop(void);
+extern void lv_img_set_url(lv_obj_t *img, const char *url);
 
 void _lv_demo_music_play(uint32_t id)
 {
+    char url[256] = {0};
+    char id_str[32] = {0};
+
     // if not current playing id, stop it first
     if (id != track_id)
     {
@@ -301,9 +305,12 @@ void _lv_demo_music_play(uint32_t id)
 
     track_load(id);
 
+    /* update album cover */
+    mp3_playlist_get_pic_url(track_id, url);
+    sprintf(url, "%s?param=176y176", url);  //specific size
+    lv_img_set_url(album_img_obj, url);
+
     g_mp3_play_is_end = false;
-    char url[256] = {0};
-    char id_str[32] = {0};
     mp3_playlist_get_song_id(track_id, id_str);
     sprintf(url, "http://music.163.com/song/media/outer/url?id=%s.mp3", id_str);
     mp3_stream_start(url);
@@ -920,22 +927,20 @@ static lv_obj_t *album_img_create(lv_obj_t *parent)
 
     lv_obj_t *img;
     img = lv_img_create(parent);
+    /* default img */
+    lv_img_set_src(img, &img_hope_cover);
 
-    switch (track_id)
+    switch (track_id % 3)
     {
     case 2:
-        lv_img_set_src(img, &img_lv_demo_music_cover_3);
         spectrum = spectrum_3;
         spectrum_len = sizeof(spectrum_3) / sizeof(spectrum_3[0]);
         break;
     case 1:
-        lv_img_set_src(img, &img_lv_demo_music_cover_2);
         spectrum = spectrum_2;
         spectrum_len = sizeof(spectrum_2) / sizeof(spectrum_2[0]);
         break;
     case 0:
-        //lv_img_set_src(img, &img_lv_demo_music_cover_1);
-        lv_img_set_src(img, &img_hope_cover);
         spectrum = spectrum_1;
         spectrum_len = sizeof(spectrum_1) / sizeof(spectrum_1[0]);
         break;

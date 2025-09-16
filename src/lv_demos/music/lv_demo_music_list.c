@@ -85,8 +85,6 @@ static void lv_music_list_refresh_cb(lv_timer_t * timer)
         lv_obj_set_scroll_snap_y(list, LV_SCROLL_SNAP_CENTER);
     #endif
 
-        //_lv_demo_music_list_btn_check(0, true);
-
         music_list_count = count;
         /* auto play the first song */
         _lv_demo_music_play(0);

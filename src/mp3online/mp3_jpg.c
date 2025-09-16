@@ -7,6 +7,7 @@
 #include <dfs_posix.h>
 #endif
 #include "mp3_mem.h"
+#include "mp3_jpg.h"
 
 #define GET_HEADER_BUFSZ        2048        //头部大小
 #define GET_RESP_BUFSZ          8192        //响应缓冲区大小
@@ -15,7 +16,7 @@
 #define JPG_URL "http://sample-files.com/downloads/images/jpg/thumbnail_150x150_10.5kb.jpg"
 #define JPG_FILE "/mp3_temp.jpg"
 
-static char *buffer = RT_NULL;
+//static char *buffer = RT_NULL;
 extern int check_internet_access(void);
 
 void lv_img_set_url(lv_obj_t *img, const char *url)
@@ -24,6 +25,9 @@ void lv_img_set_url(lv_obj_t *img, const char *url)
     struct webclient_session *session = RT_NULL;
     int content_length = -1, bytes_read = 0;
     int content_pos = 0;
+    char *buffer = RT_NULL;
+
+    rt_kprintf("%s url=%s\n", __func__, url);
 
     /* 创建会话并且设置响应的大小 */
     session = webclient_session_create(GET_HEADER_BUFSZ);
@@ -56,11 +60,12 @@ void lv_img_set_url(lv_obj_t *img, const char *url)
 #ifdef RT_USING_DFS
         /* write to file because jpg decoder do not support LV_IMAGE_SRC_SYMBOL */
         int fd;
-        fd = open(JPG_FILE, O_RDWR | O_CREAT, 0);
+        fd = open(JPG_FILE, O_RDWR | O_CREAT | O_TRUNC, 0);
         if (fd >= 0)
         {
             write(fd, buffer, bytes_read);
             close(fd);
+            rt_kprintf("%s: write %s %d bytes OK\n", __func__, JPG_FILE, bytes_read);
         }
         else
         {
@@ -70,8 +75,13 @@ void lv_img_set_url(lv_obj_t *img, const char *url)
 
         if (RT_NULL == img)
         {
+            rt_kprintf("%s: create img\n", __func__);
             img = lv_img_create(lv_scr_act());
             RT_ASSERT(img);
+        }
+        else
+        {
+            rt_kprintf("%s: img=%x\n", __func__, img);
         }
         lv_img_set_src(img, JPG_FILE);
         //rt_kprintf("%s pic size=%d x %d\n", __func__, lv_obj_get_width(wp), lv_obj_get_height(wp));
@@ -96,6 +106,8 @@ __exit:
 
 void mp3_jpg_demo(void)
 {
+#if 0
+    /* jpg download demo */
     while (check_internet_access() == 0)
     {
         rt_kprintf("no internet, wait...\n");
@@ -103,6 +115,10 @@ void mp3_jpg_demo(void)
     }
 
     lv_img_set_url(RT_NULL, JPG_URL);
+#endif
+    /* jpg display demo */
+    lv_obj_t *img = lv_img_create(lv_scr_act());
+    lv_img_set_src(img, JPG_FILE);
 }
 
 static void mp3_jpg(int argc, char **argv)

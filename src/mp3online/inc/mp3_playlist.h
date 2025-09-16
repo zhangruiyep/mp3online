@@ -10,6 +10,7 @@ int mp3_playlist_get_count(void);
 char *mp3_playlist_get_song_title(int index);
 char *mp3_playlist_get_song_artist(int index);
 void mp3_playlist_get_song_id(int index, char *id);
+void mp3_playlist_get_pic_url(int index, char *url);
 
 int mp3_playlist_get(const char * playlist_id);
 
