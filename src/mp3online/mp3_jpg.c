@@ -6,30 +6,24 @@
 #ifdef RT_USING_DFS
 #include <dfs_posix.h>
 #endif
+#include "mp3_mem.h"
 
 #define GET_HEADER_BUFSZ        2048        //头部大小
 #define GET_RESP_BUFSZ          8192        //响应缓冲区大小
 #define GET_URL_LEN_MAX         256         //网址最大长度
 
 #define JPG_URL "http://sample-files.com/downloads/images/jpg/thumbnail_150x150_10.5kb.jpg"
-#define JPG_FILE "/mp3_demo.jpg"
+#define JPG_FILE "/mp3_temp.jpg"
 
 static char *buffer = RT_NULL;
 extern int check_internet_access(void);
 
-void mp3_jpg_demo(void)
+void lv_img_set_url(lv_obj_t *img, const char *url)
 {
-
     int resp_status;
     struct webclient_session *session = RT_NULL;
     int content_length = -1, bytes_read = 0;
     int content_pos = 0;
-
-    while (check_internet_access() == 0)
-    {
-        rt_kprintf("no internet, wait...\n");
-        rt_thread_mdelay(2000);
-    }
 
     /* 创建会话并且设置响应的大小 */
     session = webclient_session_create(GET_HEADER_BUFSZ);
@@ -40,7 +34,7 @@ void mp3_jpg_demo(void)
     }
 
     /* 发送 GET 请求使用默认的头部 */
-    if ((resp_status = webclient_get(session, JPG_URL)) != 200)
+    if ((resp_status = webclient_get(session, url)) != 200)
     {
         rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
         goto __exit;
@@ -50,7 +44,7 @@ void mp3_jpg_demo(void)
     if (content_length > 0)
     {
         rt_kprintf("content_length==%d\n", content_length);
-        buffer = rt_malloc(content_length);
+        buffer = mp3_mem_malloc(content_length);
         RT_ASSERT(buffer);
         bytes_read = webclient_read(session, buffer, content_length);
         rt_kprintf("bytes_read=%d\n", bytes_read);
@@ -74,11 +68,13 @@ void mp3_jpg_demo(void)
             goto __exit;
         }
 
-        lv_obj_t * wp;
-        wp = lv_img_create(lv_scr_act());
-        RT_ASSERT(wp);
-        lv_img_set_src(wp, JPG_FILE);
-        rt_kprintf("%s pic size=%d x %d\n", __func__, lv_obj_get_width(wp), lv_obj_get_height(wp));
+        if (RT_NULL == img)
+        {
+            img = lv_img_create(lv_scr_act());
+            RT_ASSERT(img);
+        }
+        lv_img_set_src(img, JPG_FILE);
+        //rt_kprintf("%s pic size=%d x %d\n", __func__, lv_obj_get_width(wp), lv_obj_get_height(wp));
 #endif
     }
     else
@@ -92,14 +88,25 @@ __exit:
     if (session != RT_NULL)
         webclient_close(session);
 
-    //if (buffer != RT_NULL)
-    //    rt_free(buffer);
+    if (buffer != RT_NULL)
+        mp3_mem_free(buffer);
 
     return;
 }
 
+void mp3_jpg_demo(void)
+{
+    while (check_internet_access() == 0)
+    {
+        rt_kprintf("no internet, wait...\n");
+        rt_thread_mdelay(2000);
+    }
+
+    lv_img_set_url(RT_NULL, JPG_URL);
+}
+
 static void mp3_jpg(int argc, char **argv)
 {
-    mp3_jpg_demo();
+    lv_img_set_url(RT_NULL, JPG_URL);
 }
 MSH_CMD_EXPORT(mp3_jpg, MP3 jpg test)
