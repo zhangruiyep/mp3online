@@ -290,7 +290,7 @@ extern void mp3_stream_pause(void);
 extern void mp3_stream_resume(void);
 extern void mp3_stream_start(const char *mp3_url);
 extern void mp3_stream_stop(void);
-extern void lv_img_set_url(lv_obj_t *img, const char *url);
+extern int mp3_dl_img(const char *url, const char *filename);
 
 void _lv_demo_music_play(uint32_t id)
 {
@@ -308,11 +308,20 @@ void _lv_demo_music_play(uint32_t id)
 
     /* update album cover */
     mp3_playlist_get_pic_url(track_id, url);
-    sprintf(url, "%s?param=176y176", url);  //specific size
+    sprintf(url, "%s?param=140y140", url);  //specific size
     //lv_img_set_url(album_img_obj_original, url);
-    lv_img_set_src(album_img_obj_original, "/mp3_temp.jpg");
+    //lv_img_set_src(album_img_obj_original, "/mp3_temp.jpg");
     //LV_IMG_DECLARE(img_lv_demo_music_cover_1);
     //lv_img_set_src(album_img_obj_original, &img_lv_demo_music_cover_1);
+    char pic_file[32] = {0};
+    sprintf(pic_file, "/mp3_%d.jpg", track_id);
+    int ret = mp3_dl_img(url, pic_file);
+    if (ret == 0)
+    {
+        lv_img_set_src(album_img_obj, pic_file);
+        lv_obj_set_style_radius(album_img_obj, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_clip_corner(album_img_obj, true, 0);
+    }
 
     g_mp3_play_is_end = false;
     mp3_playlist_get_song_id(track_id, id_str);

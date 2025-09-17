@@ -4,6 +4,6 @@
 
 #include <lvgl.h>
 
-void lv_img_set_url(lv_obj_t *img, const char *url);
+int mp3_dl_img(const char *url, const char *filename);
 
 #endif

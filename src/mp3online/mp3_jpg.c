@@ -19,15 +19,16 @@
 //static char *buffer = RT_NULL;
 extern int check_internet_access(void);
 
-void lv_img_set_url(lv_obj_t *img, const char *url)
+int mp3_dl_img(const char *url, const char *filename)
 {
+    int ret = -1;
     int resp_status;
     struct webclient_session *session = RT_NULL;
     int content_length = -1, bytes_read = 0;
     int content_pos = 0;
     char *buffer = RT_NULL;
 
-    rt_kprintf("%s url=%s\n", __func__, url);
+    rt_kprintf("%s url=%s filename=%s\n", __func__, url, filename);
 
     /* 创建会话并且设置响应的大小 */
     session = webclient_session_create(GET_HEADER_BUFSZ);
@@ -60,19 +61,20 @@ void lv_img_set_url(lv_obj_t *img, const char *url)
 #ifdef RT_USING_DFS
         /* write to file because jpg decoder do not support LV_IMAGE_SRC_SYMBOL */
         int fd;
-        fd = open(JPG_FILE, O_RDWR | O_CREAT | O_TRUNC, 0);
+        fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0);
         if (fd >= 0)
         {
             write(fd, buffer, bytes_read);
             close(fd);
-            rt_kprintf("%s: write %s %d bytes OK\n", __func__, JPG_FILE, bytes_read);
+            rt_kprintf("%s: write %s %d bytes OK\n", __func__, filename, bytes_read);
+            ret = 0;
         }
         else
         {
-            rt_kprintf("open file:%s failed!\n", JPG_FILE);
+            rt_kprintf("open file:%s failed!\n", filename);
             goto __exit;
         }
-
+#if 0
         if (RT_NULL == img)
         {
             rt_kprintf("%s: create img\n", __func__);
@@ -86,6 +88,7 @@ void lv_img_set_url(lv_obj_t *img, const char *url)
         rt_kprintf("%s %d: img=%x thread=%s", __func__, __LINE__, img, rt_thread_self()->name);
         lv_img_set_src(img, JPG_FILE);
         //rt_kprintf("%s pic size=%d x %d\n", __func__, lv_obj_get_width(wp), lv_obj_get_height(wp));
+#endif
 #endif
     }
     else
@@ -102,7 +105,7 @@ __exit:
     if (buffer != RT_NULL)
         mp3_mem_free(buffer);
 
-    return;
+    return ret;
 }
 
 static lv_timer_t* pic_refresh_timer = NULL;
@@ -133,8 +136,10 @@ void mp3_jpg_demo(void)
 
 }
 
+#if 0
 static void mp3_jpg(int argc, char **argv)
 {
     lv_img_set_url(RT_NULL, JPG_URL);
 }
 MSH_CMD_EXPORT(mp3_jpg, MP3 jpg test)
+#endif
