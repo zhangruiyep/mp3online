@@ -83,6 +83,7 @@ void lv_img_set_url(lv_obj_t *img, const char *url)
         {
             rt_kprintf("%s: img=%x\n", __func__, img);
         }
+        rt_kprintf("%s %d: img=%x thread=%s", __func__, __LINE__, img, rt_thread_self()->name);
         lv_img_set_src(img, JPG_FILE);
         //rt_kprintf("%s pic size=%d x %d\n", __func__, lv_obj_get_width(wp), lv_obj_get_height(wp));
 #endif
@@ -104,6 +105,14 @@ __exit:
     return;
 }
 
+static lv_timer_t* pic_refresh_timer = NULL;
+static void lv_pic_refresh_cb(lv_timer_t * timer)
+{
+    lv_obj_t *img = (lv_obj_t *)timer->user_data;
+    lv_img_set_src(img, JPG_FILE);
+    lv_timer_del(timer);
+}
+
 void mp3_jpg_demo(void)
 {
 #if 0
@@ -118,7 +127,10 @@ void mp3_jpg_demo(void)
 #endif
     /* jpg display demo */
     lv_obj_t *img = lv_img_create(lv_scr_act());
-    lv_img_set_src(img, JPG_FILE);
+    LV_IMG_DECLARE(img_hope_cover);
+    lv_img_set_src(img, &img_hope_cover);
+    pic_refresh_timer = lv_timer_create(lv_pic_refresh_cb, 10000, img);
+
 }
 
 static void mp3_jpg(int argc, char **argv)

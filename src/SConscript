@@ -23,5 +23,7 @@ src.extend(SConscript(os.path.join(cwd, 'local_music/SConscript'), variant_dir="
 
 src.extend(SConscript(os.path.join(cwd, 'mp3online/SConscript'), variant_dir="mp3online", duplicate=0))
 
+src.extend(SConscript(os.path.join(cwd, 'mem/SConscript'), variant_dir="mem", duplicate=0))
+
 group = DefineGroup('LVGL_DEMO', src, depend = ['PKG_USING_LITTLEVGL2RTT'], CPPPATH = inc)
 Return('group')

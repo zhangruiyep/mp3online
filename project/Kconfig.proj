@@ -25,4 +25,8 @@ config WEBCLIENT_DEBUG
     bool "enable webclient debug"
     default n
 
+config IMAGE_CACHE_IN_PSRAM_SIZE
+    int "image cache size in psram"
+    default 1000000
+
 rsource "../src/Kconfig"

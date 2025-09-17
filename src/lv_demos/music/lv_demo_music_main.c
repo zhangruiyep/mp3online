@@ -78,6 +78,7 @@ static lv_obj_t *artist_label;
 //static lv_obj_t *genre_label;
 static lv_obj_t *time_obj;
 static lv_obj_t *album_img_obj;
+static lv_obj_t *album_img_obj_original;
 static lv_obj_t *slider_obj;
 static uint32_t spectrum_i = 0;
 static uint32_t spectrum_i_pause = 0;
@@ -308,7 +309,10 @@ void _lv_demo_music_play(uint32_t id)
     /* update album cover */
     mp3_playlist_get_pic_url(track_id, url);
     sprintf(url, "%s?param=176y176", url);  //specific size
-    lv_img_set_url(album_img_obj, url);
+    //lv_img_set_url(album_img_obj_original, url);
+    lv_img_set_src(album_img_obj_original, "/mp3_temp.jpg");
+    //LV_IMG_DECLARE(img_lv_demo_music_cover_1);
+    //lv_img_set_src(album_img_obj_original, &img_lv_demo_music_cover_1);
 
     g_mp3_play_is_end = false;
     mp3_playlist_get_song_id(track_id, id_str);
@@ -535,6 +539,7 @@ static lv_obj_t *create_spectrum_obj(lv_obj_t *parent)
     lv_obj_add_event_cb(obj, spectrum_draw_event_cb, LV_EVENT_ALL, NULL);
     lv_obj_refresh_ext_draw_size(obj);
     album_img_obj = album_img_create(obj);
+    rt_kprintf("%s %d: album_img_obj=%x\n", __func__, __LINE__, album_img_obj);
     return obj;
 }
 
@@ -707,6 +712,7 @@ static void track_load(uint32_t id)
     lv_anim_start(&a);
 
     album_img_obj = album_img_create(spectrum_obj);
+    rt_kprintf("%s %d: album_img_obj=%x\n", __func__, __LINE__, album_img_obj);
 
     lv_anim_set_path_cb(&a, lv_anim_path_overshoot);
     lv_anim_set_var(&a, album_img_obj);
@@ -929,6 +935,7 @@ static lv_obj_t *album_img_create(lv_obj_t *parent)
     img = lv_img_create(parent);
     /* default img */
     lv_img_set_src(img, &img_hope_cover);
+    rt_kprintf("%s %d: img=%x thread=%s\n", __func__, __LINE__, img, rt_thread_self()->name);
 
     switch (track_id % 3)
     {
@@ -950,6 +957,8 @@ static lv_obj_t *album_img_create(lv_obj_t *parent)
     lv_obj_add_event_cb(img, album_gesture_event_cb, LV_EVENT_GESTURE, NULL);
     lv_obj_clear_flag(img, LV_OBJ_FLAG_GESTURE_BUBBLE);
     lv_obj_add_flag(img, LV_OBJ_FLAG_CLICKABLE);
+
+    album_img_obj_original = img;
 
     return img;
 

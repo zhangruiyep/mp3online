@@ -33,6 +33,8 @@ int main(void)
     lv_ex_data_pool_init();
 
     lv_demo_music();
+    //extern void mp3_jpg_demo(void);
+    //mp3_jpg_demo();
 
     while (1)
     {
