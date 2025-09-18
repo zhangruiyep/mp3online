@@ -309,10 +309,6 @@ void _lv_demo_music_play(uint32_t id)
     /* update album cover */
     mp3_playlist_get_pic_url(track_id, url);
     sprintf(url, "%s?param=140y140", url);  //specific size
-    //lv_img_set_url(album_img_obj_original, url);
-    //lv_img_set_src(album_img_obj_original, "/mp3_temp.jpg");
-    //LV_IMG_DECLARE(img_lv_demo_music_cover_1);
-    //lv_img_set_src(album_img_obj_original, &img_lv_demo_music_cover_1);
     char pic_file[32] = {0};
     sprintf(pic_file, "/mp3_%d.jpg", track_id);
     int ret = mp3_dl_img(url, pic_file);

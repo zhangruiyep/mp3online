@@ -32,7 +32,8 @@ int mp3_network_post(const char *url, const uint8_t *post_data, size_t post_data
     int ret = 0;
     if (g_mp3_network_mq)
     {
-        mp3_nw_msg_t msg = {MP3_NW_CMD_POST, (char *)url, post_data, post_data_len, callback};
+        char *msg_url = strdup(url);
+        mp3_nw_msg_t msg = {MP3_NW_CMD_POST, msg_url, post_data, post_data_len, callback};
         ret = rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
     }
     return ret;
@@ -43,7 +44,8 @@ int mp3_network_get(const char *url, mp3_nw_rsp_data_callback callback)
     int ret = 0;
     if (g_mp3_network_mq)
     {
-        mp3_nw_msg_t msg = {MP3_NW_CMD_GET, (char *)url, NULL, 0, callback};
+        char *msg_url = strdup(url);
+        mp3_nw_msg_t msg = {MP3_NW_CMD_GET, msg_url, NULL, 0, callback};
         ret = rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
     }
     return ret;
@@ -127,8 +129,10 @@ void mp3_network_thread_entry(void *params)
                     rt_kprintf("webclient POST request failed, response(%d) error.\n", resp_status);
                     mp3_mem_free((void *)msg.post_data);
                     webclient_close(session);
+                    free((void *)msg.url);  //from strdup
                     break;
                 }
+                free((void *)msg.url);  //from strdup
 
                 mp3_mem_free((void *)msg.post_data);
 
@@ -189,17 +193,20 @@ void mp3_network_thread_entry(void *params)
                 session = webclient_session_create(POST_HEADER_BUFSZ);
                 RT_ASSERT(session);
 
+                rt_kprintf("%s %d: GET msg.url=%s\n", __func__, __LINE__, msg.url);
                 if ((resp_status = webclient_get(session, msg.url)) != 200)
                 {
                     rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
                     webclient_close(session);
+                    free((void *)msg.url);  //from strdup
                     break;
                 }
+                free((void *)msg.url);  //from strdup
 
                 int content_length = webclient_content_length_get(session);
                 if (content_length == 0)
                 {
-                    rt_kprintf("webclient post response data is null.\n");
+                    rt_kprintf("webclient GET response data is null.\n");
                     webclient_close(session);
                     break;
                 }

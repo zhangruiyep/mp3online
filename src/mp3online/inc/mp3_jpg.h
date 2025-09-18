@@ -5,5 +5,6 @@
 #include <lvgl.h>
 
 int mp3_dl_img(const char *url, const char *filename);
+bool mp3_img_is_downloading(void);
 
 #endif

@@ -7,6 +7,7 @@
 #include <dfs_posix.h>
 #endif
 #include "mp3_mem.h"
+#include "mp3_network.h"
 #include "mp3_jpg.h"
 
 #define GET_HEADER_BUFSZ        2048        //头部大小
@@ -16,95 +17,70 @@
 #define JPG_URL "http://sample-files.com/downloads/images/jpg/thumbnail_150x150_10.5kb.jpg"
 #define JPG_FILE "/mp3_temp.jpg"
 
-//static char *buffer = RT_NULL;
 extern int check_internet_access(void);
 
-int mp3_dl_img(const char *url, const char *filename)
+static char g_dl_filename[128] = {0};
+static bool g_jpg_file_downloading = false;
+bool mp3_img_is_downloading(void)
 {
-    int ret = -1;
-    int resp_status;
-    struct webclient_session *session = RT_NULL;
-    int content_length = -1, bytes_read = 0;
-    int content_pos = 0;
-    char *buffer = RT_NULL;
+    return g_jpg_file_downloading;
+}
 
-    rt_kprintf("%s url=%s filename=%s\n", __func__, url, filename);
-
-    /* 创建会话并且设置响应的大小 */
-    session = webclient_session_create(GET_HEADER_BUFSZ);
-    if (session == RT_NULL)
+static int mp3_dl_img_callback(uint8_t *data, size_t size)
+{
+    int ret = 0;
+    if ((data == NULL) || (size <= 0))
     {
-        rt_kprintf("No memory for get header!\n");
-        goto __exit;
+        rt_kprintf("%s: data invalid!\n", __func__);
+        return -1;
     }
-
-    /* 发送 GET 请求使用默认的头部 */
-    if ((resp_status = webclient_get(session, url)) != 200)
-    {
-        rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
-        goto __exit;
-    }
-
-    content_length = webclient_content_length_get(session);
-    if (content_length > 0)
-    {
-        rt_kprintf("content_length==%d\n", content_length);
-        buffer = mp3_mem_malloc(content_length);
-        RT_ASSERT(buffer);
-        bytes_read = webclient_read(session, buffer, content_length);
-        rt_kprintf("bytes_read=%d\n", bytes_read);
-        if (bytes_read < content_length)
-        {
-            rt_kprintf("%s bytes_read=%d err!!\n", __func__, bytes_read);
-            goto __exit;
-        }
 #ifdef RT_USING_DFS
-        /* write to file because jpg decoder do not support LV_IMAGE_SRC_SYMBOL */
-        int fd;
-        fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0);
-        if (fd >= 0)
+    char *filename = g_dl_filename;
+
+    /* check file exist */
+    struct stat st = {0};
+    ret = stat(filename, &st);
+    if (ret == 0)
+    {
+        if ((st.st_size > 0) && (st.st_size == size))
         {
-            write(fd, buffer, bytes_read);
-            close(fd);
-            rt_kprintf("%s: write %s %d bytes OK\n", __func__, filename, bytes_read);
-            ret = 0;
+            rt_kprintf("%s: file %s already exist, skip write\n", __func__, filename);
+            mp3_mem_free(data);
+            return 0;
         }
-        else
-        {
-            rt_kprintf("open file:%s failed!\n", filename);
-            goto __exit;
-        }
-#if 0
-        if (RT_NULL == img)
-        {
-            rt_kprintf("%s: create img\n", __func__);
-            img = lv_img_create(lv_scr_act());
-            RT_ASSERT(img);
-        }
-        else
-        {
-            rt_kprintf("%s: img=%x\n", __func__, img);
-        }
-        rt_kprintf("%s %d: img=%x thread=%s", __func__, __LINE__, img, rt_thread_self()->name);
-        lv_img_set_src(img, JPG_FILE);
-        //rt_kprintf("%s pic size=%d x %d\n", __func__, lv_obj_get_width(wp), lv_obj_get_height(wp));
-#endif
-#endif
+    }
+
+    /* write to file because jpg decoder do not support LV_IMAGE_SRC_SYMBOL */
+    int fd;
+    fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0);
+    if (fd >= 0)
+    {
+        write(fd, data, size);
+        close(fd);
+        rt_kprintf("%s: write %s %d bytes OK\n", __func__, filename, size);
+        ret = 0;
     }
     else
     {
-        rt_kprintf("content_length==0! return NULL\n");
+        rt_kprintf("%s: open file %s failed!\n", __func__, filename);
+        ret = -1;
     }
+    mp3_mem_free(data);
+#endif
+    g_jpg_file_downloading = false;
+    return ret;
+}
 
-__exit:
+int mp3_dl_img(const char *url, const char *filename)
+{
+    RT_ASSERT(url);
+    RT_ASSERT(filename);
 
-    /* 关闭会话 */
-    if (session != RT_NULL)
-        webclient_close(session);
-
-    if (buffer != RT_NULL)
-        mp3_mem_free(buffer);
-
+    int ret = 0;
+    rt_kprintf("%s: url=%s filename=%s\n", __func__, url, filename);
+    strncpy(g_dl_filename, filename, sizeof(g_dl_filename) - 1);
+    g_jpg_file_downloading = true;
+    ret = mp3_network_get(url, mp3_dl_img_callback);
     return ret;
 }
 
