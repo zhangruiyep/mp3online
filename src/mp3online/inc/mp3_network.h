@@ -32,5 +32,6 @@ typedef struct
 } mp3_nw_msg_t;
 
 int mp3_network_post(const char *url, const uint8_t *post_data, size_t post_data_len, mp3_nw_rsp_data_callback callback);
+int mp3_network_get(const char *url, mp3_nw_rsp_data_callback callback);
 
 #endif

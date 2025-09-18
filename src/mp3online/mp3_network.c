@@ -38,6 +38,17 @@ int mp3_network_post(const char *url, const uint8_t *post_data, size_t post_data
     return ret;
 }
 
+int mp3_network_get(const char *url, mp3_nw_rsp_data_callback callback)
+{
+    int ret = 0;
+    if (g_mp3_network_mq)
+    {
+        mp3_nw_msg_t msg = {MP3_NW_CMD_GET, (char *)url, NULL, 0, callback};
+        ret = rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
+    }
+    return ret;
+}
+
 static void svr_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg)
 {
     if (ipaddr != NULL)
@@ -154,6 +165,45 @@ void mp3_network_thread_entry(void *params)
 
                 rt_kprintf("\n");
 #endif
+                if (msg.callback)
+                {
+                    char *content = mp3_mem_malloc(content_length + 1);
+                    RT_ASSERT(content);
+                    memset(content, 0, content_length + 1);
+                    bytes_read = webclient_read(session, content, content_length);
+                    RT_ASSERT(bytes_read == content_length);
+
+                    msg.callback(content, bytes_read);
+                }
+
+                if (session)
+                {
+                    webclient_close(session);
+                    session = RT_NULL;
+                }
+                break;
+            }
+            case MP3_NW_CMD_GET:
+            {
+                /* create webclient session and set header response size */
+                session = webclient_session_create(POST_HEADER_BUFSZ);
+                RT_ASSERT(session);
+
+                if ((resp_status = webclient_get(session, msg.url)) != 200)
+                {
+                    rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
+                    webclient_close(session);
+                    break;
+                }
+
+                int content_length = webclient_content_length_get(session);
+                if (content_length == 0)
+                {
+                    rt_kprintf("webclient post response data is null.\n");
+                    webclient_close(session);
+                    break;
+                }
+
                 if (msg.callback)
                 {
                     char *content = mp3_mem_malloc(content_length + 1);
