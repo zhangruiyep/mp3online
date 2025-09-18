@@ -6,5 +6,6 @@
 
 int mp3_dl_img(const char *url, const char *filename);
 bool mp3_img_is_downloading(void);
+bool mp3_img_file_is_ready(const char *filename);
 
 #endif

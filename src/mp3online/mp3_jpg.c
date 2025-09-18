@@ -26,6 +26,25 @@ bool mp3_img_is_downloading(void)
     return g_jpg_file_downloading;
 }
 
+bool mp3_img_file_is_ready(const char *filename)
+{
+    /* check if file is downloading */
+    if (mp3_img_is_downloading() && (strcmp(filename, g_dl_filename) == 0))
+    {
+        return false;
+    }
+
+    struct stat st = {0};
+    int ret = stat(filename, &st);
+    if ((ret < 0) || (st.st_size <= 0))
+    {
+        return false;
+    }
+
+    rt_kprintf("%s: file %s size=%d\n", __func__, filename, st.st_size);
+    return true;
+}
+
 static int mp3_dl_img_callback(uint8_t *data, size_t size)
 {
     int ret = 0;
