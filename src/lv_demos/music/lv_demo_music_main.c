@@ -295,6 +295,7 @@ extern void mp3_stream_start(const char *mp3_url);
 extern void mp3_stream_stop(void);
 extern int mp3_dl_img(const char *url, const char *filename);
 extern bool mp3_img_file_is_ready(const char *filename);
+static bool g_slider_range_set = false;
 
 void _lv_demo_music_play(uint32_t id)
 {
@@ -334,7 +335,18 @@ void _lv_demo_music_resume(void)
     lv_anim_start(&a);
 
     lv_timer_resume(sec_counter_timer);
-    lv_slider_set_range(slider_obj, 0, _lv_demo_music_get_track_length(track_id));
+    /* track len may be 0 if mp3 dl not started yet */
+    uint32_t track_len = _lv_demo_music_get_track_length(track_id);
+    if (track_len > 0)
+    {
+        rt_kprintf("%s %d: track len: %d\n", __func__, __LINE__, track_len);
+        lv_slider_set_range(slider_obj, 0, track_len);
+        g_slider_range_set = true;
+    }
+    else
+    {
+        g_slider_range_set = false;
+    }
 
     lv_obj_add_state(play_obj, LV_STATE_CHECKED);
     mp3_stream_resume();
@@ -1034,6 +1046,16 @@ static void timer_cb(lv_timer_t *t)
     lv_label_set_text_fmt(time_obj, "%"LV_PRIu32":%02"LV_PRIu32, time_act / 60, time_act % 60);
     lv_slider_set_value(slider_obj, time_act, LV_ANIM_ON);
 #else
+    if (g_slider_range_set == false)
+    {
+        uint32_t track_len = _lv_demo_music_get_track_length(track_id);
+        if (track_len > 0)
+        {
+            rt_kprintf("%s %d: track len: %d\n", __func__, __LINE__, track_len);
+            lv_slider_set_range(slider_obj, 0, _lv_demo_music_get_track_length(track_id));
+            g_slider_range_set = true;
+        }
+    }
     lv_label_set_text_fmt(time_obj, "%"LV_PRIu32":%02"LV_PRIu32, g_mp3_play_seconds / 60, g_mp3_play_seconds % 60);
     lv_slider_set_value(slider_obj, g_mp3_play_seconds, LV_ANIM_ON);
     if (g_mp3_play_is_end)  // set by mp3 play thread
