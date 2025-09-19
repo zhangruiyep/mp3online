@@ -279,6 +279,9 @@ void _lv_demo_music_album_next(bool next)
         }
     }
 
+#if 1
+    _lv_demo_music_play(id);
+#else
     if (!playing)
     {
         _lv_demo_music_play(id);
@@ -287,19 +290,29 @@ void _lv_demo_music_album_next(bool next)
     {
         track_load(id);
     }
+#endif
 }
 
 extern void mp3_stream_pause(void);
 extern void mp3_stream_resume(void);
-extern void mp3_stream_start(const char *mp3_url);
+extern void mp3_stream_start(const char *mp3_url, void *user_cb);
 extern void mp3_stream_stop(void);
 extern int mp3_dl_img(const char *url, const char *filename);
 extern bool mp3_img_file_is_ready(const char *filename);
 static bool g_slider_range_set = false;
+static bool g_mp3_start_fail = false;
+
+static void mp3_stream_cb(int result)
+{
+    if (result < 0)
+    {
+        g_mp3_start_fail = true;
+    }
+}
 
 void _lv_demo_music_play(uint32_t id)
 {
-    char url[256] = {0};
+    static char url[256] = {0};
     char id_str[32] = {0};
 
     // if not current playing id, stop it first
@@ -314,7 +327,7 @@ void _lv_demo_music_play(uint32_t id)
     g_mp3_play_is_end = false;
     mp3_playlist_get_song_id(track_id, id_str);
     sprintf(url, "http://music.163.com/song/media/outer/url?id=%s.mp3", id_str);
-    mp3_stream_start(url);
+    mp3_stream_start(url, mp3_stream_cb);
 
     _lv_demo_music_resume();
 }
@@ -1046,6 +1059,12 @@ static void timer_cb(lv_timer_t *t)
     lv_label_set_text_fmt(time_obj, "%"LV_PRIu32":%02"LV_PRIu32, time_act / 60, time_act % 60);
     lv_slider_set_value(slider_obj, time_act, LV_ANIM_ON);
 #else
+    if (g_mp3_start_fail)
+    {
+        _lv_demo_music_album_next(true);
+        g_mp3_start_fail = false;
+        return;
+    }
     if (g_slider_range_set == false)
     {
         uint32_t track_len = _lv_demo_music_get_track_length(track_id);

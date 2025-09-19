@@ -55,6 +55,8 @@ static int g_mp3_dl_content_len = 0;
 static rt_mq_t g_mp3_dl_mq = NULL;
 static rt_thread_t g_mp3_dl_thread = NULL;
 
+static rt_timer_t g_mp3_dl_start_timer = NULL;
+
 static void send_msg_to_mp3_dl(mp3_dl_msg_t *msg)
 {
     if (g_mp3_dl_mq)
@@ -105,7 +107,12 @@ void mp3_dl_thread_entry(void *params)
     if ((resp_status = webclient_get(session, mp3_url)) != 200)
     {
         rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
-        goto __exit;
+        /* retry */
+        if ((resp_status = webclient_get(session, mp3_url)) != 200)
+        {
+            rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
+            goto __exit;
+        }
     }
 
     content_length = webclient_content_length_get(session);
@@ -246,22 +253,52 @@ void mp3_stream_pause(void)
     }
 }
 
-void mp3_stream_start(const char *mp3_url)
+typedef void(*mp3_user_cb)(int ret);
+static int g_mp3_dl_wait_timeout = 0;
+void mp3_stream_start_timer_cb(void *parameter)
+{
+    mp3_user_cb user_cb = (mp3_user_cb)parameter;
+    g_mp3_dl_wait_timeout--;
+    if (g_mp3_dl_wait_timeout > 0)
+    {
+        rt_kprintf("%s %d: wait dl, retry=%d\n", __func__, __LINE__, g_mp3_dl_wait_timeout);
+        if (g_mp3_dl_content_len)
+        {
+            play_buff(g_mp3_ring_buffer, g_mp3_dl_content_len);
+            if (user_cb)
+            {
+                user_cb(0);
+            }
+            rt_timer_stop(g_mp3_dl_start_timer);
+        }
+    }
+    else
+    {
+        rt_kprintf("%s %d: wait dl timeout\n", __func__, __LINE__);
+        if (user_cb)
+        {
+            user_cb(-1);
+        }
+        rt_timer_stop(g_mp3_dl_start_timer);
+    }
+}
+
+void mp3_stream_start(const char *mp3_url, void *user_cb)
 {
     mp3_dl_thread_init(mp3_url);
     if (g_mp3_dl_state == MP3_DL_STATE_INIT)
     {
-        int retry = 30;
-        while (retry-- > 0)
+        if (!g_mp3_dl_start_timer)
         {
-            rt_kprintf("%s %d: wait dl, retry=%d\n", __func__, __LINE__, retry);
-            if (g_mp3_dl_content_len)
-            {
-                play_buff(g_mp3_ring_buffer, g_mp3_dl_content_len);
-                break;
-            }
-            rt_thread_mdelay(1000);
+            g_mp3_dl_start_timer = rt_timer_create("mp3start", mp3_stream_start_timer_cb, user_cb,
+                                                rt_tick_from_millisecond(1000), RT_TIMER_FLAG_SOFT_TIMER | RT_TIMER_FLAG_PERIODIC);
         }
+        else
+        {
+            rt_timer_stop(g_mp3_dl_start_timer);
+        }
+        g_mp3_dl_wait_timeout = 30;
+        rt_timer_start(g_mp3_dl_start_timer);
     }
     else
     {
