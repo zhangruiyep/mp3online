@@ -8,6 +8,7 @@
 #if PKG_NETUTILS_NTP
 #include "ntp.h"
 #endif
+#include "mp3_network.h"
 #include "local_music.h"
 
 #ifndef MIN
@@ -25,6 +26,10 @@
 extern uint8_t g_mp3_ring_buffer[MP3_RING_BUFFER_SIZE];
 extern int g_mp3_ring_buffer_write_pos;
 extern int g_mp3_ring_buffer_read_pos;
+
+#define MP3_DL_TRUNC_SIZE   (MP3_RING_BUFFER_SIZE/2)
+
+typedef void(*mp3_user_cb)(int ret);
 
 typedef enum
 {
@@ -51,11 +56,63 @@ typedef enum
 static mp3_dl_state_t g_mp3_dl_state = MP3_DL_STATE_IDLE;
 
 static int g_mp3_dl_content_len = 0;
+static int g_mp3_dl_content_pos = 0;
 
 static rt_mq_t g_mp3_dl_mq = NULL;
 static rt_thread_t g_mp3_dl_thread = NULL;
 
 static rt_timer_t g_mp3_dl_start_timer = NULL;
+static mp3_user_cb user_cb = NULL;
+
+/*  */
+static int mp3_dl_get_part_callback(uint8_t *data, size_t len)
+{
+    rt_kprintf("%s %d: len=%d\n", __func__, __LINE__, len);
+    if (len == 0)
+    {
+        return 0;
+    }
+
+    g_mp3_dl_state = MP3_DL_STATE_DLING;
+    g_mp3_dl_content_len = len;
+    g_mp3_dl_content_pos += MP3_RING_BUFFER_SIZE;
+    play_buff(g_mp3_ring_buffer, g_mp3_dl_content_len);
+    if (user_cb)
+    {
+        user_cb(0);
+    }
+    if (g_mp3_dl_start_timer)
+    {
+        rt_timer_stop(g_mp3_dl_start_timer);
+    }
+    return 0;
+}
+
+static int mp3_dl_get_part_continue_callback(uint8_t *data, size_t len)
+{
+    rt_kprintf("%s %d: len=%d\n", __func__, __LINE__, len);
+    if ((data == NULL) || (len == 0))
+    {
+        return 0;
+    }
+
+    g_mp3_dl_state = MP3_DL_STATE_DLING;
+    g_mp3_ring_buffer_write_pos += len;
+    if (g_mp3_ring_buffer_write_pos >= MP3_RING_BUFFER_SIZE)
+    {
+        g_mp3_ring_buffer_write_pos = 0;
+    }
+    rt_kprintf("%s %d: g_mp3_ring_buffer_write_pos=%d\n", __func__, __LINE__, g_mp3_ring_buffer_write_pos);
+    g_mp3_dl_content_pos += len;
+    rt_kprintf("%s %d: g_mp3_dl_content_pos=%d\n", __func__, __LINE__, g_mp3_dl_content_pos);
+    if (g_mp3_dl_content_pos >= g_mp3_dl_content_len)
+    {
+        /* download done */
+        rt_kprintf("%s %d: dl done\n", __func__, __LINE__);
+        g_mp3_dl_state = MP3_DL_STATE_IDLE;
+    }
+    return 0;
+}
 
 static void send_msg_to_mp3_dl(mp3_dl_msg_t *msg)
 {
@@ -74,6 +131,57 @@ void send_read_msg_to_mp3_dl(int read_pos)
     msg.data.read_pos = read_pos;
 
     send_msg_to_mp3_dl(&msg);
+}
+
+void mp3_dl_read_more(int read_pos)
+{
+    rt_kprintf("%s %d: data=%d\n", __func__, __LINE__, read_pos);
+    if (g_mp3_dl_state == MP3_DL_STATE_IDLE)
+    {
+        rt_kprintf("%s %d: no more data\n", __func__, __LINE__);
+        return;
+    }
+
+    g_mp3_ring_buffer_read_pos = read_pos;
+    int remain_len = g_mp3_ring_buffer_write_pos - g_mp3_ring_buffer_read_pos;
+    if (remain_len < 0)
+    {
+        remain_len += MP3_RING_BUFFER_SIZE;
+    }
+    rt_kprintf("%s %d: remain_len=%d\n", __func__, __LINE__, remain_len);
+    if (remain_len < MP3_DL_TRUNC_SIZE)
+    {
+        /* make sure only trigger once */
+        static int writing_pos = 0;
+        /* make sure dl write in buffer range */
+        rt_kprintf("%s %d: g_mp3_ring_buffer_write_pos=%d\n", __func__, __LINE__, g_mp3_ring_buffer_write_pos);
+        if (writing_pos != g_mp3_ring_buffer_write_pos)
+        {
+            /* download still in progress, wait, do not send more request */
+            rt_kprintf("%s %d: wait for more data, skip get\n", __func__, __LINE__);
+            return;
+        }
+
+        int dl_len = MP3_RING_BUFFER_SIZE - g_mp3_ring_buffer_write_pos;
+        if (dl_len > MP3_DL_TRUNC_SIZE)
+        {
+            dl_len = MP3_DL_TRUNC_SIZE;
+        }
+        /* last packet */
+        int last = g_mp3_dl_content_len - g_mp3_dl_content_pos;
+        rt_kprintf("%s %d: last=%d\n", __func__, __LINE__, last);
+        if (last < MP3_DL_TRUNC_SIZE)
+        {
+            dl_len = last;
+        }
+        rt_kprintf("%s %d: dl_len=%d\n", __func__, __LINE__, dl_len);
+        mp3_network_get_part_continue(&g_mp3_ring_buffer[g_mp3_ring_buffer_write_pos], dl_len, mp3_dl_get_part_continue_callback);
+        writing_pos += dl_len;  //prepare writing, but not done
+        if (writing_pos >= MP3_RING_BUFFER_SIZE)
+        {
+            writing_pos -= MP3_RING_BUFFER_SIZE;
+        }
+    }
 }
 
 void send_stop_msg_to_mp3_dl(void)
@@ -216,17 +324,32 @@ __exit:
 
 int mp3_dl_thread_init(const char *mp3_url)
 {
+    int ret = 0;
     rt_kprintf("%s %d: g_mp3_dl_state=%d\n", __func__, __LINE__, g_mp3_dl_state);
     if (g_mp3_dl_state == MP3_DL_STATE_IDLE)
     {
+#if 0
         g_mp3_dl_mq = rt_mq_create("mp3_dl_mq", sizeof(mp3_ctrl_info_t), 40, RT_IPC_FLAG_FIFO);
         RT_ASSERT(g_mp3_dl_mq);
         g_mp3_dl_thread = rt_thread_create("mp3_dl", mp3_dl_thread_entry, (void *)mp3_url, 2048, RT_THREAD_PRIORITY_MIDDLE, RT_THREAD_TICK_DEFAULT);
         RT_ASSERT(g_mp3_dl_thread);
         rt_err_t err = rt_thread_startup(g_mp3_dl_thread);
         RT_ASSERT(RT_EOK == err);
+#endif
+        g_mp3_dl_content_pos = 0;
+        ret = mp3_network_get_part(mp3_url, g_mp3_ring_buffer, MP3_RING_BUFFER_SIZE, mp3_dl_get_part_callback);
+        if (ret < 0)
+        {
+            rt_kprintf("%s %d: ERR ret=%d\n", __func__, __LINE__, ret);
+            return ret;
+        }
         g_mp3_dl_state = MP3_DL_STATE_INIT;
     }
+    else
+    {
+        rt_kprintf("%s %d: state err=%d\n", __func__, __LINE__, g_mp3_dl_state);
+    }
+    return ret;
 }
 
 void mp3_stream_resume(void)
@@ -253,34 +376,17 @@ void mp3_stream_pause(void)
     }
 }
 
-typedef void(*mp3_user_cb)(int ret);
-static int g_mp3_dl_wait_timeout = 0;
+
 void mp3_stream_start_timer_cb(void *parameter)
 {
-    mp3_user_cb user_cb = (mp3_user_cb)parameter;
-    g_mp3_dl_wait_timeout--;
-    if (g_mp3_dl_wait_timeout > 0)
+    user_cb = (mp3_user_cb)parameter;
+
+    rt_kprintf("%s %d: wait dl timeout\n", __func__, __LINE__);
+    if (user_cb)
     {
-        rt_kprintf("%s %d: wait dl, retry=%d\n", __func__, __LINE__, g_mp3_dl_wait_timeout);
-        if (g_mp3_dl_content_len)
-        {
-            play_buff(g_mp3_ring_buffer, g_mp3_dl_content_len);
-            if (user_cb)
-            {
-                user_cb(0);
-            }
-            rt_timer_stop(g_mp3_dl_start_timer);
-        }
+        user_cb(-1);
     }
-    else
-    {
-        rt_kprintf("%s %d: wait dl timeout\n", __func__, __LINE__);
-        if (user_cb)
-        {
-            user_cb(-1);
-        }
-        rt_timer_stop(g_mp3_dl_start_timer);
-    }
+    rt_timer_stop(g_mp3_dl_start_timer);
 }
 
 void mp3_stream_start(const char *mp3_url, void *user_cb)
@@ -291,13 +397,12 @@ void mp3_stream_start(const char *mp3_url, void *user_cb)
         if (!g_mp3_dl_start_timer)
         {
             g_mp3_dl_start_timer = rt_timer_create("mp3start", mp3_stream_start_timer_cb, user_cb,
-                                                rt_tick_from_millisecond(1000), RT_TIMER_FLAG_SOFT_TIMER | RT_TIMER_FLAG_PERIODIC);
+                                                rt_tick_from_millisecond(30000), RT_TIMER_FLAG_SOFT_TIMER | RT_TIMER_FLAG_ONE_SHOT);
         }
         else
         {
             rt_timer_stop(g_mp3_dl_start_timer);
         }
-        g_mp3_dl_wait_timeout = 30;
         rt_timer_start(g_mp3_dl_start_timer);
     }
     else

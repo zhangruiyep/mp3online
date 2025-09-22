@@ -14,8 +14,9 @@
 #include "local_music.h"
 
 /* notify download thread play progress */
-extern void send_read_msg_to_mp3_dl(int read_pos);
+//extern void send_read_msg_to_mp3_dl(int read_pos);
 extern void send_stop_msg_to_mp3_dl(void);
+extern void mp3_dl_read_more(int read_pos);
 
 /* Common functions for RT-Thread based platform -----------------------------------------------*/
 
@@ -164,7 +165,8 @@ static int play_callback_func(audio_server_callback_cmt_t cmd, void *callback_us
         case as_callback_cmd_user_read:
             rt_kprintf("[LOCAL MUSIC]%s user read, read_pos=%d\n", __func__, reserved);
             /* notify mp3 download thread to get more */
-            send_read_msg_to_mp3_dl(reserved);
+            //send_read_msg_to_mp3_dl(reserved);
+            mp3_dl_read_more(reserved);
             break;
         case as_callback_cmd_play_to_end:
             /* To close audio client when playing has been completed. */

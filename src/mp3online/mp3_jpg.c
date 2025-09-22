@@ -51,6 +51,7 @@ static int mp3_dl_img_callback(uint8_t *data, size_t size)
     if ((data == NULL) || (size <= 0))
     {
         rt_kprintf("%s: data invalid!\n", __func__);
+        g_jpg_file_downloading = false;
         return -1;
     }
 #ifdef RT_USING_DFS
@@ -65,6 +66,7 @@ static int mp3_dl_img_callback(uint8_t *data, size_t size)
         {
             rt_kprintf("%s: file %s already exist, skip write\n", __func__, filename);
             mp3_mem_free(data);
+            g_jpg_file_downloading = false;
             return 0;
         }
     }
@@ -84,8 +86,8 @@ static int mp3_dl_img_callback(uint8_t *data, size_t size)
         rt_kprintf("%s: open file %s failed!\n", __func__, filename);
         ret = -1;
     }
-    mp3_mem_free(data);
 #endif
+    mp3_mem_free(data);
     g_jpg_file_downloading = false;
     return ret;
 }

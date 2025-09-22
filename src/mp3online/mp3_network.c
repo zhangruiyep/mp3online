@@ -33,7 +33,7 @@ int mp3_network_post(const char *url, const uint8_t *post_data, size_t post_data
     if (g_mp3_network_mq)
     {
         char *msg_url = strdup(url);
-        mp3_nw_msg_t msg = {MP3_NW_CMD_POST, msg_url, post_data, post_data_len, callback};
+        mp3_nw_msg_t msg = {MP3_NW_CMD_POST, msg_url, (uint8_t *)post_data, post_data_len, callback};
         ret = rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
     }
     return ret;
@@ -46,6 +46,29 @@ int mp3_network_get(const char *url, mp3_nw_rsp_data_callback callback)
     {
         char *msg_url = strdup(url);
         mp3_nw_msg_t msg = {MP3_NW_CMD_GET, msg_url, NULL, 0, callback};
+        ret = rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
+    }
+    return ret;
+}
+
+int mp3_network_get_part(const char *url, uint8_t *user_buff, size_t buff_size, mp3_nw_rsp_data_callback callback)
+{
+    int ret = 0;
+    if (g_mp3_network_mq)
+    {
+        char *msg_url = strdup(url);
+        mp3_nw_msg_t msg = {MP3_NW_CMD_GET_PART, msg_url, user_buff, buff_size, callback};
+        ret = rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
+    }
+    return ret;
+}
+
+int mp3_network_get_part_continue(uint8_t *user_buff, size_t buff_size, mp3_nw_rsp_data_callback callback)
+{
+    int ret = 0;
+    if (g_mp3_network_mq)
+    {
+        mp3_nw_msg_t msg = {MP3_NW_CMD_GET_PART_CONTINUE, NULL, user_buff, buff_size, callback};
         ret = rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
     }
     return ret;
@@ -81,6 +104,9 @@ int check_internet_access()
 void mp3_network_thread_entry(void *params)
 {
     struct webclient_session* session = RT_NULL;
+    static struct webclient_session* get_part_session = RT_NULL;
+    static size_t g_content_length = 0;
+    static size_t g_totol_bytes_read = 0;
     int ret = 0;
     int bytes_read, resp_status;
 
@@ -118,23 +144,23 @@ void mp3_network_thread_entry(void *params)
                 RT_ASSERT(cookie_str);
 
                 webclient_header_fields_add(session, "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0\r\n");
-                webclient_header_fields_add(session, "Content-Length: %d\r\n", msg.post_data_len);
+                webclient_header_fields_add(session, "Content-Length: %d\r\n", msg.data_len);
                 webclient_header_fields_add(session, "Content-Type: application/x-www-form-urlencoded;charset=utf-8\r\n");
                 webclient_header_fields_add(session, "Cookie: %s\r\n", cookie_str);
                 mp3_mem_free(cookie_str);
 
                 /* send POST request */
-                if ((resp_status = webclient_post(session, msg.url, msg.post_data, msg.post_data_len)) != 200)
+                if ((resp_status = webclient_post(session, msg.url, msg.user_data, msg.data_len)) != 200)
                 {
                     rt_kprintf("webclient POST request failed, response(%d) error.\n", resp_status);
-                    mp3_mem_free((void *)msg.post_data);
+                    mp3_mem_free((void *)msg.user_data);
                     webclient_close(session);
                     free((void *)msg.url);  //from strdup
                     break;
                 }
                 free((void *)msg.url);  //from strdup
 
-                mp3_mem_free((void *)msg.post_data);
+                mp3_mem_free((void *)msg.user_data);
 
                 /* handle set cookie */
                 const char *set_cookie = webclient_header_fields_get(session, "Set-Cookie:");
@@ -188,44 +214,108 @@ void mp3_network_thread_entry(void *params)
                 break;
             }
             case MP3_NW_CMD_GET:
+            case MP3_NW_CMD_GET_PART:
+            case MP3_NW_CMD_GET_PART_CONTINUE:
             {
-                /* create webclient session and set header response size */
-                session = webclient_session_create(POST_HEADER_BUFSZ);
-                RT_ASSERT(session);
-
-                rt_kprintf("%s %d: GET msg.url=%s\n", __func__, __LINE__, msg.url);
-                if ((resp_status = webclient_get(session, msg.url)) != 200)
+                int trunc_size = 0;
+                /* get response, check content length */
+                if ((msg.cmd == MP3_NW_CMD_GET) || (msg.cmd == MP3_NW_CMD_GET_PART))
                 {
-                    rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
-                    webclient_close(session);
+                    /* create webclient session and set header response size */
+                    session = webclient_session_create(POST_HEADER_BUFSZ);
+                    RT_ASSERT(session);
+
+                    if (msg.cmd == MP3_NW_CMD_GET_PART)
+                    {
+                        get_part_session = session;
+                    }
+
+                    rt_kprintf("%s %d: GET msg.url=%s\n", __func__, __LINE__, msg.url);
+                    if ((resp_status = webclient_get(session, msg.url)) != 200)
+                    {
+                        rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
+                        webclient_close(session);
+                        free((void *)msg.url);  //from strdup
+
+                        if (msg.callback)
+                        {
+                            msg.callback(NULL, 0);
+                        }
+                        if (msg.cmd == MP3_NW_CMD_GET_PART)
+                        {
+                            get_part_session = RT_NULL;
+                        }
+                        break;
+                    }
                     free((void *)msg.url);  //from strdup
-                    break;
-                }
-                free((void *)msg.url);  //from strdup
 
-                int content_length = webclient_content_length_get(session);
-                if (content_length == 0)
-                {
-                    rt_kprintf("webclient GET response data is null.\n");
-                    webclient_close(session);
-                    break;
+                    g_content_length = webclient_content_length_get(session);
+                    if (g_content_length == 0)
+                    {
+                        rt_kprintf("webclient GET response data is null.\n");
+                        webclient_close(session);
+                        if (msg.callback)
+                        {
+                            msg.callback(NULL, 0);
+                        }
+                        if (msg.cmd == MP3_NW_CMD_GET_PART)
+                        {
+                            get_part_session = RT_NULL;
+                        }
+                        break;
+                    }
                 }
-
+                /* read content data */
                 if (msg.callback)
                 {
-                    char *content = mp3_mem_malloc(content_length + 1);
-                    RT_ASSERT(content);
-                    memset(content, 0, content_length + 1);
-                    bytes_read = webclient_read(session, content, content_length);
-                    RT_ASSERT(bytes_read == content_length);
-
-                    msg.callback(content, bytes_read);
+                    if (msg.cmd == MP3_NW_CMD_GET_PART)
+                    {
+                        trunc_size = msg.data_len;
+                        g_totol_bytes_read = 0;
+                    }
+                    else if (msg.cmd == MP3_NW_CMD_GET_PART_CONTINUE)
+                    {
+                        trunc_size = msg.data_len;
+                        session = get_part_session;
+                    }
+                    else if (msg.cmd == MP3_NW_CMD_GET)
+                    {
+                        trunc_size = g_content_length;
+                    }
+                    /* use user buffer or alloc buffer */
+                    char *content = NULL;
+                    if (msg.user_data)  //use provide buffer
+                    {
+                        content = msg.user_data;
+                    }
+                    else
+                    {
+                        content = mp3_mem_malloc(trunc_size + 1);
+                        RT_ASSERT(content);
+                        memset(content, 0, trunc_size + 1);
+                    }
+                    bytes_read = webclient_read(session, content, trunc_size);
+                    g_totol_bytes_read += bytes_read;
+                    //RT_ASSERT(bytes_read == trunc_size);
+                    if (msg.cmd == MP3_NW_CMD_GET_PART)
+                    {
+                        /* use total len instead of read size */
+                        msg.callback(content, g_content_length);
+                    }
+                    else
+                    {
+                        msg.callback(content, bytes_read);
+                    }
                 }
-
-                if (session)
+                /* close session when read finish */
+                if ((bytes_read < trunc_size)   //error
+                    || (g_totol_bytes_read >= g_content_length))    //end
                 {
-                    webclient_close(session);
-                    session = RT_NULL;
+                    if (session)
+                    {
+                        webclient_close(session);
+                        session = RT_NULL;
+                    }
                 }
                 break;
             }

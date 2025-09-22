@@ -20,18 +20,22 @@ typedef enum
 {
     MP3_NW_CMD_GET,
     MP3_NW_CMD_POST,
+    MP3_NW_CMD_GET_PART,    //for large file, only get part
+    MP3_NW_CMD_GET_PART_CONTINUE,
 } mp3_nw_cmd_t;
 
 typedef struct
 {
     mp3_nw_cmd_t cmd;
     const char *url;
-    const uint8_t *post_data;
-    size_t post_data_len;
+    uint8_t *user_data; // post data or get data buffer
+    size_t data_len;   // post data length when cmd is POST; get data length when cmd is GET_PART
     mp3_nw_rsp_data_callback callback;
 } mp3_nw_msg_t;
 
 int mp3_network_post(const char *url, const uint8_t *post_data, size_t post_data_len, mp3_nw_rsp_data_callback callback);
 int mp3_network_get(const char *url, mp3_nw_rsp_data_callback callback);
+int mp3_network_get_part(const char *url, uint8_t *user_buff, size_t buff_size, mp3_nw_rsp_data_callback callback);
+int mp3_network_get_part_continue(uint8_t *user_buff, size_t buff_size, mp3_nw_rsp_data_callback callback);
 
 #endif
