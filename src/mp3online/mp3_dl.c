@@ -58,9 +58,6 @@ static mp3_dl_state_t g_mp3_dl_state = MP3_DL_STATE_IDLE;
 static int g_mp3_dl_content_len = 0;
 static int g_mp3_dl_content_pos = 0;
 
-static rt_mq_t g_mp3_dl_mq = NULL;
-static rt_thread_t g_mp3_dl_thread = NULL;
-
 static rt_timer_t g_mp3_dl_start_timer = NULL;
 static mp3_user_cb user_cb = NULL;
 
@@ -114,25 +111,6 @@ static int mp3_dl_get_part_continue_callback(uint8_t *data, size_t len)
     return 0;
 }
 
-static void send_msg_to_mp3_dl(mp3_dl_msg_t *msg)
-{
-    if (g_mp3_dl_mq)
-    {
-        rt_err_t err = rt_mq_send(g_mp3_dl_mq, msg, sizeof(mp3_dl_msg_t));
-        RT_ASSERT(err == RT_EOK);
-    }
-}
-
-void send_read_msg_to_mp3_dl(int read_pos)
-{
-    rt_kprintf("%s in\n", __func__);
-    mp3_dl_msg_t msg = {0};
-    msg.cmd = MP3_DL_CMD_READ_MORE;
-    msg.data.read_pos = read_pos;
-
-    send_msg_to_mp3_dl(&msg);
-}
-
 void mp3_dl_read_more(int read_pos)
 {
     rt_kprintf("%s %d: data=%d\n", __func__, __LINE__, read_pos);
@@ -184,158 +162,12 @@ void mp3_dl_read_more(int read_pos)
     }
 }
 
-void send_stop_msg_to_mp3_dl(void)
-{
-    rt_kprintf("%s in\n", __func__);
-    mp3_dl_msg_t msg = {0};
-    msg.cmd = MP3_DL_CMD_STOP;
-
-    send_msg_to_mp3_dl(&msg);
-}
-
-void mp3_dl_thread_entry(void *params)
-{
-    char *buffer = RT_NULL;
-    int resp_status;
-    struct webclient_session *session = RT_NULL;
-    const char *mp3_url = (const char *)params;
-    rt_kprintf("%s: mp3_url=%s\n", __func__, mp3_url);
-    int content_length = -1, bytes_read = 0;
-    int content_pos = 0;
-
-    /* 创建会话并且设置响应的大小 */
-    session = webclient_session_create(GET_HEADER_BUFSZ);
-    if (session == RT_NULL)
-    {
-        rt_kprintf("No memory for get header!\n");
-        goto __exit;
-    }
-
-    /* 发送 GET 请求使用默认的头部 */
-    if ((resp_status = webclient_get(session, mp3_url)) != 200)
-    {
-        rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
-        /* retry */
-        if ((resp_status = webclient_get(session, mp3_url)) != 200)
-        {
-            rt_kprintf("webclient GET request failed, response(%d) error.\n", resp_status);
-            goto __exit;
-        }
-    }
-
-    content_length = webclient_content_length_get(session);
-    if (content_length > 0)
-    {
-        g_mp3_dl_state = MP3_DL_STATE_DLING;
-        rt_kprintf("content_length==%d\n", content_length);
-        g_mp3_dl_content_len = content_length;
-
-        bytes_read = webclient_read(session, g_mp3_ring_buffer, MIN(MP3_RING_BUFFER_SIZE, content_length));
-        rt_kprintf("first bytes_read=%d\n", bytes_read);
-        if (bytes_read <= 0)
-        {
-            rt_kprintf("%s bytes_read=%d err!!\n", bytes_read);
-            goto __exit;
-        }
-        content_pos += bytes_read;
-    }
-    else
-    {
-        rt_kprintf("content_length==0! return NULL\n");
-    }
-
-    rt_kprintf("content_pos=%d\n", content_pos);
-
-    mp3_dl_msg_t msg = {0};
-    while (content_pos < content_length)
-    {
-        rt_err_t err = rt_mq_recv(g_mp3_dl_mq, &msg, sizeof(msg), RT_WAITING_FOREVER);
-        RT_ASSERT(err == RT_EOK);
-        //rt_kprintf("%s RECV msg: cmd %d\n", __func__, msg.cmd);
-        switch (msg.cmd)
-        {
-            case MP3_DL_CMD_READ_MORE:
-                rt_kprintf("%s %d: data=%d\n", __func__, __LINE__, msg.data.read_pos);
-                g_mp3_ring_buffer_read_pos = msg.data.read_pos;
-                int remain_len = g_mp3_ring_buffer_write_pos - g_mp3_ring_buffer_read_pos;
-                if (remain_len < 0)
-                {
-                    remain_len += MP3_RING_BUFFER_SIZE;
-                }
-                rt_kprintf("%s %d: remain_len=%d\n", __func__, __LINE__, remain_len);
-
-                if (remain_len < MP3_RING_BUFFER_SIZE/2)
-                {
-                    /* make sure dl write in buffer range */
-                    rt_kprintf("%s %d: g_mp3_ring_buffer_write_pos=%d\n", __func__, __LINE__, g_mp3_ring_buffer_write_pos);
-                    int dl_len = MP3_RING_BUFFER_SIZE - g_mp3_ring_buffer_write_pos;
-                    if (dl_len > MP3_RING_BUFFER_SIZE/2)
-                    {
-                        dl_len = MP3_RING_BUFFER_SIZE/2;
-                    }
-                    rt_kprintf("%s %d: dl_len=%d\n", __func__, __LINE__, dl_len);
-
-                    bytes_read = webclient_read(session, &g_mp3_ring_buffer[g_mp3_ring_buffer_write_pos], dl_len);
-                    if (bytes_read <= 0)
-                    {
-                        rt_kprintf("%s %d: bytes_read=%d err!\n", __func__, __LINE__, bytes_read);
-                        break;
-                    }
-                    rt_kprintf("%s %d: bytes_read=%d\n", __func__, __LINE__, bytes_read);
-                    if (bytes_read < dl_len)
-                    {
-                        rt_kprintf("%s %d: network slow or download done\n", __func__, __LINE__);
-                    }
-
-                    g_mp3_ring_buffer_write_pos += bytes_read;
-                    if (g_mp3_ring_buffer_write_pos >= MP3_RING_BUFFER_SIZE)
-                    {
-                        g_mp3_ring_buffer_write_pos = 0;
-                    }
-                    rt_kprintf("%s %d: g_mp3_ring_buffer_write_pos=%d\n", __func__, __LINE__, g_mp3_ring_buffer_write_pos);
-                    content_pos += bytes_read;
-                    rt_kprintf("%s %d: content_pos=%d\n", __func__, __LINE__, content_pos);
-                }
-                break;
-            case MP3_DL_CMD_STOP:
-                rt_kprintf("%s %d: stop\n", __func__, __LINE__);
-                goto __exit;
-            default:
-                break;
-        }
-    }
-    rt_kprintf("%s %d: done\n", __func__, __LINE__);
-
-__exit:
-
-    /* 关闭会话 */
-    if (session != RT_NULL)
-        webclient_close(session);
-
-    /* free mq */
-    rt_mq_delete(g_mp3_dl_mq);
-    g_mp3_dl_mq = RT_NULL;
-
-    g_mp3_dl_state = MP3_DL_STATE_IDLE;
-    g_mp3_dl_content_len = 0;
-
-    return;
-}
-
 int mp3_dl_thread_init(const char *mp3_url)
 {
     int ret = 0;
     rt_kprintf("%s %d: g_mp3_dl_state=%d\n", __func__, __LINE__, g_mp3_dl_state);
     if (g_mp3_dl_state == MP3_DL_STATE_IDLE)
     {
-#if 0
-        g_mp3_dl_mq = rt_mq_create("mp3_dl_mq", sizeof(mp3_ctrl_info_t), 40, RT_IPC_FLAG_FIFO);
-        RT_ASSERT(g_mp3_dl_mq);
-        g_mp3_dl_thread = rt_thread_create("mp3_dl", mp3_dl_thread_entry, (void *)mp3_url, 2048, RT_THREAD_PRIORITY_MIDDLE, RT_THREAD_TICK_DEFAULT);
-        RT_ASSERT(g_mp3_dl_thread);
-        rt_err_t err = rt_thread_startup(g_mp3_dl_thread);
-        RT_ASSERT(RT_EOK == err);
-#endif
         g_mp3_dl_content_pos = 0;
         ret = mp3_network_get_part(mp3_url, g_mp3_ring_buffer, MP3_RING_BUFFER_SIZE, mp3_dl_get_part_callback);
         if (ret < 0)
@@ -415,8 +247,9 @@ void mp3_stream_stop(void)
 {
     if (g_mp3_dl_state != MP3_DL_STATE_IDLE)
     {
-        send_stop_msg_to_mp3_dl();
+        mp3_network_get_part_cancel();
         play_stop();
+        g_mp3_dl_state = MP3_DL_STATE_IDLE;
     }
 }
 

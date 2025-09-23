@@ -74,6 +74,17 @@ int mp3_network_get_part_continue(uint8_t *user_buff, size_t buff_size, mp3_nw_r
     return ret;
 }
 
+int mp3_network_get_part_cancel(void)
+{
+    int ret = 0;
+    if (g_mp3_network_mq)
+    {
+        mp3_nw_msg_t msg = {MP3_NW_CMD_GET_PART_CANCEL, NULL, NULL, 0, NULL};
+        ret = rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
+    }
+    return ret;
+}
+
 static void svr_found_callback(const char *name, const ip_addr_t *ipaddr, void *callback_arg)
 {
     if (ipaddr != NULL)
@@ -315,7 +326,19 @@ void mp3_network_thread_entry(void *params)
                     {
                         webclient_close(session);
                         session = RT_NULL;
+                        get_part_session = RT_NULL;
+                        g_content_length = 0;
                     }
+                }
+                break;
+            }
+            case MP3_NW_CMD_GET_PART_CANCEL:
+            {
+                if (get_part_session)
+                {
+                    webclient_close(get_part_session);
+                    get_part_session = RT_NULL;
+                    g_content_length = 0;
                 }
                 break;
             }
