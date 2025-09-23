@@ -15,6 +15,7 @@
 #include "assets/spectrum_2.h"
 #include "assets/spectrum_3.h"
 #include "mp3_playlist.h"
+#include "mp3_jpg.h"
 
 /*********************
  *      DEFINES
@@ -297,10 +298,10 @@ extern void mp3_stream_pause(void);
 extern void mp3_stream_resume(void);
 extern void mp3_stream_start(const char *mp3_url, void *user_cb);
 extern void mp3_stream_stop(void);
-extern int mp3_dl_img(const char *url, const char *filename);
-extern bool mp3_img_file_is_ready(const char *filename);
 static bool g_slider_range_set = false;
 static bool g_mp3_start_fail = false;
+static int g_album_img_dl_result = -1;
+static const char *g_album_img_file = NULL;
 
 static void mp3_stream_cb(int result)
 {
@@ -951,6 +952,13 @@ static void start_anim_cb(void *a, int32_t v)
     lv_obj_invalidate(spectrum_obj);
 }
 
+static void mp3_img_download_callback(const char *filename, int result)
+{
+    /* wait timer_cb to update img */
+    g_album_img_file = filename;
+    g_album_img_dl_result = result;
+}
+
 static lv_obj_t *album_img_create(lv_obj_t *parent)
 {
     LV_IMG_DECLARE(img_lv_demo_music_cover_1);
@@ -979,12 +987,7 @@ static lv_obj_t *album_img_create(lv_obj_t *parent)
     if (strlen(url) > strlen("http://"))
     {
         sprintf(url, "%s?param=140y140", url);  //specific size
-        int ret = mp3_dl_img(url, pic_file);
-        if (ret == 0)
-        {
-            /* should update next time?? */
-            lv_img_set_src(img, pic_file);
-        }
+        mp3_dl_img(url, pic_file, mp3_img_download_callback);
     }
     /* cut to round */
     lv_obj_set_style_radius(img, LV_RADIUS_CIRCLE, 0);
@@ -1065,6 +1068,17 @@ static void timer_cb(lv_timer_t *t)
         g_mp3_start_fail = false;
         return;
     }
+
+    if (g_album_img_dl_result == 1)    //file refreshed
+    {
+        lv_img_cache_invalidate_src(g_album_img_file);
+    }
+    if (g_album_img_dl_result >= 0)
+    {
+        lv_img_set_src(album_img_obj, g_album_img_file);
+    }
+    g_album_img_dl_result = -1;
+
     if (g_slider_range_set == false)
     {
         uint32_t track_len = _lv_demo_music_get_track_length(track_id);

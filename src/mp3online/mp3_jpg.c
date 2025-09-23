@@ -21,6 +21,8 @@ extern int check_internet_access(void);
 
 static char g_dl_filename[128] = {0};
 static bool g_jpg_file_downloading = false;
+static mp3_dl_img_user_callback g_user_callback = NULL;
+
 bool mp3_img_is_downloading(void)
 {
     return g_jpg_file_downloading;
@@ -52,6 +54,10 @@ static int mp3_dl_img_callback(uint8_t *data, size_t size)
     {
         rt_kprintf("%s: data invalid!\n", __func__);
         g_jpg_file_downloading = false;
+        if (g_user_callback)
+        {
+            g_user_callback(g_dl_filename, -1);
+        }
         return -1;
     }
 #ifdef RT_USING_DFS
@@ -67,6 +73,10 @@ static int mp3_dl_img_callback(uint8_t *data, size_t size)
             rt_kprintf("%s: file %s already exist, skip write\n", __func__, filename);
             mp3_mem_free(data);
             g_jpg_file_downloading = false;
+            if (g_user_callback)
+            {
+                g_user_callback(g_dl_filename, 0);
+            }
             return 0;
         }
     }
@@ -79,23 +89,36 @@ static int mp3_dl_img_callback(uint8_t *data, size_t size)
         write(fd, data, size);
         close(fd);
         rt_kprintf("%s: write %s %d bytes OK\n", __func__, filename, size);
+        if (g_user_callback)
+        {
+            g_user_callback(g_dl_filename, 1);
+        }
         ret = 0;
     }
     else
     {
         rt_kprintf("%s: open file %s failed!\n", __func__, filename);
+        if (g_user_callback)
+        {
+            g_user_callback(g_dl_filename, -1);
+        }
         ret = -1;
     }
 #endif
     mp3_mem_free(data);
     g_jpg_file_downloading = false;
+    if (g_user_callback)
+    {
+        g_user_callback(g_dl_filename, ret);
+    }
     return ret;
 }
 
-int mp3_dl_img(const char *url, const char *filename)
+int mp3_dl_img(const char *url, const char *filename, mp3_dl_img_user_callback callback)
 {
     RT_ASSERT(url);
     RT_ASSERT(filename);
+    g_user_callback = callback;
 
     int ret = 0;
     rt_kprintf("%s: url=%s filename=%s\n", __func__, url, filename);
