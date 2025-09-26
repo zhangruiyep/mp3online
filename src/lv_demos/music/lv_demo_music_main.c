@@ -735,8 +735,6 @@ static void track_load(uint32_t id)
     lv_anim_start(&a);
 #endif
 
-    /* when delete the old album image? */
-
     album_img_obj = album_img_create(spectrum_obj);
 
 #if ENABLE_IMG_ZOOM

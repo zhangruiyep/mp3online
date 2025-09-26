@@ -215,6 +215,7 @@ void mp3_proc_thread_entry(void *params)
             {
                 /* Close firstly if mp3 is playing. */
                 mp3ctrl_close(g_mp3_handle);
+                g_mp3_handle = NULL;
             }
             g_mp3_handle = mp3ctrl_open_buffer(AUDIO_TYPE_LOCAL_MUSIC,  /* audio type, see enum audio_type_t. */
                                         msg.param.filename,  /* buffer */

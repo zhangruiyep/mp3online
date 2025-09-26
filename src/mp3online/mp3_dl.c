@@ -168,7 +168,11 @@ int mp3_dl_thread_init(const char *mp3_url)
     rt_kprintf("%s %d: g_mp3_dl_state=%d\n", __func__, __LINE__, g_mp3_dl_state);
     if (g_mp3_dl_state == MP3_DL_STATE_IDLE)
     {
+        memset(g_mp3_ring_buffer, 0, MP3_RING_BUFFER_SIZE);
+        g_mp3_ring_buffer_write_pos = 0;
+        g_mp3_ring_buffer_read_pos = 0;
         g_mp3_dl_content_pos = 0;
+
         ret = mp3_network_get_part(mp3_url, g_mp3_ring_buffer, MP3_RING_BUFFER_SIZE, mp3_dl_get_part_callback);
         if (ret < 0)
         {
