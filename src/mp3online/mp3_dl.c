@@ -227,7 +227,12 @@ void mp3_stream_start_timer_cb(void *parameter)
 
 void mp3_stream_start(const char *mp3_url, void *user_cb)
 {
-    mp3_dl_thread_init(mp3_url);
+    int ret = mp3_dl_thread_init(mp3_url);
+    if (ret < 0)
+    {
+        /* can not init mp3 dl, try reboot to recover network */
+        drv_reboot();
+    }
     if (g_mp3_dl_state == MP3_DL_STATE_INIT)
     {
         if (!g_mp3_dl_start_timer)
