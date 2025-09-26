@@ -111,6 +111,8 @@ static int mp3_dl_get_part_continue_callback(uint8_t *data, size_t len)
     return 0;
 }
 
+/* make sure only trigger once */
+int g_mp3_to_write_pos = 0;
 void mp3_dl_read_more(int read_pos)
 {
     rt_kprintf("%s %d: data=%d\n", __func__, __LINE__, read_pos);
@@ -129,11 +131,9 @@ void mp3_dl_read_more(int read_pos)
     rt_kprintf("%s %d: remain_len=%d\n", __func__, __LINE__, remain_len);
     if (remain_len < MP3_DL_TRUNC_SIZE)
     {
-        /* make sure only trigger once */
-        static int writing_pos = 0;
         /* make sure dl write in buffer range */
         rt_kprintf("%s %d: g_mp3_ring_buffer_write_pos=%d\n", __func__, __LINE__, g_mp3_ring_buffer_write_pos);
-        if (writing_pos != g_mp3_ring_buffer_write_pos)
+        if (g_mp3_to_write_pos != g_mp3_ring_buffer_write_pos)
         {
             /* download still in progress, wait, do not send more request */
             rt_kprintf("%s %d: wait for more data, skip get\n", __func__, __LINE__);
@@ -154,10 +154,10 @@ void mp3_dl_read_more(int read_pos)
         }
         rt_kprintf("%s %d: dl_len=%d\n", __func__, __LINE__, dl_len);
         mp3_network_get_part_continue(&g_mp3_ring_buffer[g_mp3_ring_buffer_write_pos], dl_len, mp3_dl_get_part_continue_callback);
-        writing_pos += dl_len;  //prepare writing, but not done
-        if (writing_pos >= MP3_RING_BUFFER_SIZE)
+        g_mp3_to_write_pos += dl_len;  //prepare writing, but not done
+        if (g_mp3_to_write_pos >= MP3_RING_BUFFER_SIZE)
         {
-            writing_pos -= MP3_RING_BUFFER_SIZE;
+            g_mp3_to_write_pos -= MP3_RING_BUFFER_SIZE;
         }
     }
 }
@@ -172,6 +172,7 @@ int mp3_dl_thread_init(const char *mp3_url)
         g_mp3_ring_buffer_write_pos = 0;
         g_mp3_ring_buffer_read_pos = 0;
         g_mp3_dl_content_pos = 0;
+        g_mp3_to_write_pos = 0;
 
         ret = mp3_network_get_part(mp3_url, g_mp3_ring_buffer, MP3_RING_BUFFER_SIZE, mp3_dl_get_part_callback);
         if (ret < 0)
