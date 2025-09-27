@@ -256,6 +256,13 @@ void mp3_network_thread_entry(void *params)
                         {
                             get_part_session = RT_NULL;
                         }
+
+                        if (resp_status < 0)
+                        {
+                            /* try reconnect bt-pan? */
+                            extern void bt_app_connect_pan_timeout_handle(void *parameter);
+                            bt_app_connect_pan_timeout_handle(NULL);
+                        }
                         break;
                     }
                     free((void *)msg.url);  //from strdup
