@@ -51,24 +51,24 @@ int mp3_network_get(const char *url, mp3_nw_rsp_data_callback callback)
     return ret;
 }
 
-int mp3_network_get_part(const char *url, uint8_t *user_buff, size_t buff_size, mp3_nw_rsp_data_callback callback)
+int mp3_network_get_part(const char *url, size_t size, mp3_nw_rsp_data_callback callback)
 {
     int ret = 0;
     if (g_mp3_network_mq)
     {
         char *msg_url = strdup(url);
-        mp3_nw_msg_t msg = {MP3_NW_CMD_GET_PART, msg_url, user_buff, buff_size, callback};
+        mp3_nw_msg_t msg = {MP3_NW_CMD_GET_PART, msg_url, NULL, size, callback};
         ret = rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
     }
     return ret;
 }
 
-int mp3_network_get_part_continue(uint8_t *user_buff, size_t buff_size, mp3_nw_rsp_data_callback callback)
+int mp3_network_get_part_continue(size_t size, mp3_nw_rsp_data_callback callback)
 {
     int ret = 0;
     if (g_mp3_network_mq)
     {
-        mp3_nw_msg_t msg = {MP3_NW_CMD_GET_PART_CONTINUE, NULL, user_buff, buff_size, callback};
+        mp3_nw_msg_t msg = {MP3_NW_CMD_GET_PART_CONTINUE, NULL, NULL, size, callback};
         ret = rt_mq_send(g_mp3_network_mq, &msg, sizeof(msg));
     }
     return ret;
@@ -260,8 +260,8 @@ void mp3_network_thread_entry(void *params)
                         if (resp_status < 0)
                         {
                             /* try reconnect bt-pan? */
-                            extern void bt_app_connect_pan_timeout_handle(void *parameter);
-                            bt_app_connect_pan_timeout_handle(NULL);
+                            //extern void bt_app_connect_pan_timeout_handle(void *parameter);
+                            //bt_app_connect_pan_timeout_handle(NULL);
                         }
                         break;
                     }
@@ -302,11 +302,13 @@ void mp3_network_thread_entry(void *params)
                     }
                     /* use user buffer or alloc buffer */
                     char *content = NULL;
+#if 0
                     if (msg.user_data)  //use provide buffer
                     {
                         content = msg.user_data;
                     }
                     else
+#endif
                     {
                         content = mp3_mem_malloc(trunc_size + 1);
                         RT_ASSERT(content);
@@ -324,6 +326,7 @@ void mp3_network_thread_entry(void *params)
                     {
                         msg.callback(content, bytes_read);
                     }
+                    mp3_mem_free(content);
                 }
                 /* close session when read finish */
                 if ((bytes_read < trunc_size)   //error

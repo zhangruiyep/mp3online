@@ -62,6 +62,9 @@
     #include "vbe_eq_drc_api.h"
     #define VBE_OUT_BUFFER_SIZE     (sizeof(short) * MAX_NCHAN * MAX_NGRAN * MAX_NSAMP + VBE_ONE_FRAME_SAMPLES * MAX_NCHAN * sizeof(short))
 #endif
+#if MP3_RINGBUFF
+#include "mp3_ringbuffer.h"
+#endif
 
 #define PUBLIC_API
 
@@ -171,10 +174,6 @@ struct mp3ctrl_t
 #if defined(SYS_HEAP_IN_PSRAM)
     uint8_t        *stack_addr;
 #endif
-#if MP3_RINGBUFF
-    uint32_t        ring_buf_size;
-    uint32_t        file_bytes_left;
-#endif
 };
 
 
@@ -216,10 +215,6 @@ typedef struct ID3v2
 static uint32_t wav_read_header(mp3ctrl_handle ctrl);
 static int get_frame_info(mp3ctrl_handle ctrl, MP3FrameInfo *mp3FrameInfo);
 
-#if MP3_RINGBUFF
-static uint32_t g_ring_buf_size = 0;
-#endif
-
 #if defined (SOLUTION_RING_BUILT_IN) || defined (RING_USING_FLASH_B)
     #include "lv_conf.h"
     #include "drv_flash.h"
@@ -232,13 +227,6 @@ static int buf_read(mp3ctrl_handle handle, void *buf, int len)
     {
         len = handle->mp3_data_len - (uint32_t)handle->fd;
     }
-#if MP3_RINGBUFF
-    /* fd is in ringbuffer range, so we need another var to check if file end */
-    if (len > handle->file_bytes_left)
-    {
-        len = handle->file_bytes_left;
-    }
-#endif
     if (len == 0)
         return 0;
 #if defined (SOLUTION_RING_BUILT_IN) || defined (RING_USING_FLASH_B)
@@ -259,11 +247,14 @@ static int buf_read(mp3ctrl_handle handle, void *buf, int len)
 #endif
     {
 #if MP3_RINGBUFF
-        LOG_I("%s fd=%d,len=%d", __func__, handle->fd, len);
-        if ((handle->ring_buf_size > 0) && (handle->fd + (int)len > handle->ring_buf_size))
+        if (strcmp(handle->filename, "rb") == 0)
         {
-            memcpy(buf, handle->filename + handle->fd, handle->ring_buf_size - handle->fd);
-            memcpy(buf + handle->ring_buf_size - handle->fd, handle->filename, len - (handle->ring_buf_size - handle->fd));
+            size_t read_len = mp3_ring_buffer_get(buf, len);
+            if (read_len < len)
+            {
+                /* no more data, we need pause and wait network download */
+                rt_kprintf("%s %d: %d < %d, no more data\n", __func__, __LINE__, read_len, len);
+            }
         }
         else
 #endif
@@ -271,13 +262,8 @@ static int buf_read(mp3ctrl_handle handle, void *buf, int len)
     }
     handle->fd = handle->fd + (int)len;
 #if MP3_RINGBUFF
-    handle->file_bytes_left -= len;
-    if (handle->ring_buf_size > 0)
+    if (strcmp(handle->filename, "rb") == 0)
     {
-        if (handle->fd >= handle->ring_buf_size)
-        {
-            handle->fd = handle->fd - handle->ring_buf_size;
-        }
         /* notify app to read more */
         if (handle->callback)
         {
@@ -1566,6 +1552,13 @@ static mp3ctrl_handle mp3ctrl_open_real(audio_type_t type,
         LOG_E("mp3 parameter error");
         return NULL;
     }
+#if MP3_RINGBUFF
+    if (strcmp(filename, "rb") == 0)
+    {
+        LOG_I("mp3 ringbuff len=%d callback=0x%x", len, (uint32_t)callback);
+    }
+    else
+#endif
     if (len == -1)
     {
         LOG_I("mp3 open %s callback=0x%x", filename, (uint32_t)callback);
@@ -1602,10 +1595,6 @@ static mp3ctrl_handle mp3ctrl_open_real(audio_type_t type,
         handle->fd = 0;
         file_size = len;
         handle->mp3_data_len = file_size;
-#if MP3_RINGBUFF
-        handle->ring_buf_size = g_ring_buf_size;
-        handle->file_bytes_left = file_size;
-#endif
     }
     handle->tag_len = audio_parse_mp3_id3v2(handle);
     if (handle->tag_len == -1)
@@ -1704,18 +1693,23 @@ PUBLIC_API mp3ctrl_handle mp3ctrl_open(audio_type_t type,
 PUBLIC_API mp3ctrl_handle mp3ctrl_open_buffer(audio_type_t type,
         const char *buf,
         uint32_t buf_len,
-#if MP3_RINGBUFF
-        uint32_t ring_buf_size,
-#endif
         audio_server_callback_func callback,
         void *callback_userdata)
 {
-#if MP3_RINGBUFF
-    /* keep mp3ctrl_open_real api, so use global var for input parameter */
-    g_ring_buf_size = ring_buf_size;
-#endif
     return mp3ctrl_open_real(type, buf, buf_len, callback, callback_userdata);
 }
+#if MP3_RINGBUFF
+mp3ctrl_handle mp3ctrl_open_ringbuffer(audio_type_t type,
+        struct rt_ringbuffer *buf,
+        uint32_t file_len,
+        audio_server_callback_func callback,
+        void *callback_userdata)
+{
+    /* use filename "rb" to mark use ringbuffer */
+    return mp3ctrl_open_real(type, "rb", file_len, callback, callback_userdata);
+}
+#endif
+
 PUBLIC_API int mp3ctrl_close(mp3ctrl_handle handle)
 {
     rt_uint32_t evt;
@@ -1732,9 +1726,6 @@ PUBLIC_API int mp3ctrl_close(mp3ctrl_handle handle)
 #if defined(SYS_HEAP_IN_PSRAM)
     void *stack_addr = handle->stack_addr;
     rt_thread_t thread = (rt_thread_t)handle->thread;
-#endif
-#if MP3_RINGBUFF
-    g_ring_buf_size = 0;
 #endif
     event = handle->api_event;
     handle->magic = ~MP3_HANDLE_MAGIC; //now allow use handle lator

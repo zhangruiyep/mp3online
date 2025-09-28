@@ -27,5 +27,6 @@ void play_pause(void);
 void play_resume(void);
 void play_stop(void);
 uint32_t play_get_total_seconds(void);
+void play_ringbuff(int file_len);
 
 #endif

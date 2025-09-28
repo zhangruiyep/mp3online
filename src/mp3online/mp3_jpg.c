@@ -71,7 +71,6 @@ static int mp3_dl_img_callback(uint8_t *data, size_t size)
         if ((st.st_size > 0) && (st.st_size == size))
         {
             rt_kprintf("%s: file %s already exist, skip write\n", __func__, filename);
-            mp3_mem_free(data);
             g_jpg_file_downloading = false;
             if (g_user_callback)
             {
@@ -105,7 +104,6 @@ static int mp3_dl_img_callback(uint8_t *data, size_t size)
         ret = -1;
     }
 #endif
-    mp3_mem_free(data);
     g_jpg_file_downloading = false;
     if (g_user_callback)
     {

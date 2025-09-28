@@ -44,10 +44,9 @@ open:
             (uint32_t)callback_userdata is current play time in seconds
 */
 mp3ctrl_handle mp3ctrl_open(audio_type_t type, const char *filename, audio_server_callback_func callback, void *callback_userdata);
-#if MP3_RINGBUFF
-mp3ctrl_handle mp3ctrl_open_buffer(audio_type_t type, const char *buf, uint32_t buf_len, uint32_t ring_buf_size, audio_server_callback_func callback, void *callback_userdata);
-#else
 mp3ctrl_handle mp3ctrl_open_buffer(audio_type_t type, const char *buf, uint32_t buf_len, audio_server_callback_func callback, void *callback_userdata);
+#if MP3_RINGBUFF
+mp3ctrl_handle mp3ctrl_open_ringbuffer(audio_type_t type, struct rt_ringbuffer *buf, uint32_t file_len, audio_server_callback_func callback, void *callback_userdata);
 #endif
 /**
     cmd:

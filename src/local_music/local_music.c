@@ -11,6 +11,7 @@
 #endif
 #include "drv_flash.h"
 #include "mp3_mem.h"
+#include "mp3_ringbuffer.h"
 #include "local_music.h"
 
 /* notify download thread play progress */
@@ -59,12 +60,6 @@ int mnt_init(void)
 INIT_ENV_EXPORT(mnt_init);
 
 /* User code start from here --------------------------------------------------------*/
-/* ringbuff for stream download and play */
-#define MP3_RING_BUFFER_SIZE (1024*16)
-uint8_t g_mp3_ring_buffer[MP3_RING_BUFFER_SIZE] = {};
-//uint8_t * g_mp3_ring_buffer = NULL;
-int g_mp3_ring_buffer_write_pos = 0;
-int g_mp3_ring_buffer_read_pos = 0;
 
 /* play status */
 uint32_t g_mp3_play_seconds = 0;
@@ -96,6 +91,18 @@ void play_buff(const char *buff, int len)
     info.loop = 0;
     info.param.filename = buff;
     info.param.len = len;
+
+    send_msg_to_mp3_proc(&info);
+}
+
+void play_ringbuff(int file_len)
+{
+    rt_kprintf("[LOCAL MUSIC]%s %d\n", __func__, file_len);
+    mp3_ctrl_info_t info = {0};
+
+    info.cmd = CMD_MP3_PALY;
+    info.loop = 0;
+    info.param.len = file_len;
 
     send_msg_to_mp3_proc(&info);
 }
@@ -217,10 +224,9 @@ void mp3_proc_thread_entry(void *params)
                 mp3ctrl_close(g_mp3_handle);
                 g_mp3_handle = NULL;
             }
-            g_mp3_handle = mp3ctrl_open_buffer(AUDIO_TYPE_LOCAL_MUSIC,  /* audio type, see enum audio_type_t. */
-                                        msg.param.filename,  /* buffer */
-                                        msg.param.len,  /* buffer len */
-                                        MP3_RING_BUFFER_SIZE,  /* ring buffer size */
+            g_mp3_handle = mp3ctrl_open_ringbuffer(AUDIO_TYPE_LOCAL_MUSIC,  /* audio type, see enum audio_type_t. */
+                                        (struct rt_ringbuffer *)msg.param.filename,  /* buffer */
+                                        msg.param.len,  /* file len */
                                         play_callback_func,  /* play callback function. */
                                         NULL);
             RT_ASSERT(g_mp3_handle);
@@ -270,6 +276,8 @@ void mp3_proc_thread_entry(void *params)
  */
 rt_err_t mp3_comm_init(void)
 {
+    mp3_ring_buffer_init();
+
     g_mp3_proc_mq = rt_mq_create("mp3_proc_mq", sizeof(mp3_ctrl_info_t), 60, RT_IPC_FLAG_FIFO);
     RT_ASSERT(g_mp3_proc_mq);
     g_mp3_proc_thread = rt_thread_create("mp3_proc", mp3_proc_thread_entry, NULL, 2048, RT_THREAD_PRIORITY_MIDDLE, RT_THREAD_TICK_DEFAULT);

@@ -36,8 +36,8 @@ typedef struct
 
 int mp3_network_post(const char *url, const uint8_t *post_data, size_t post_data_len, mp3_nw_rsp_data_callback callback);
 int mp3_network_get(const char *url, mp3_nw_rsp_data_callback callback);
-int mp3_network_get_part(const char *url, uint8_t *user_buff, size_t buff_size, mp3_nw_rsp_data_callback callback);
-int mp3_network_get_part_continue(uint8_t *user_buff, size_t buff_size, mp3_nw_rsp_data_callback callback);
+int mp3_network_get_part(const char *url, size_t size, mp3_nw_rsp_data_callback callback);
+int mp3_network_get_part_continue(size_t size, mp3_nw_rsp_data_callback callback);
 int mp3_network_get_part_cancel(void);
 
 #endif
