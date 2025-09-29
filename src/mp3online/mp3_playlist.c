@@ -102,6 +102,9 @@ static int mp3_playlist_content_callback(uint8_t *data, size_t len)
     mp3_update_songs_info(g_mp3_playlist_json);
 }
 
+
+/* 9344469550: Genshin Impect */
+/* 2819914042: Jp New Weekly */
 int mp3_playlist_get(const char * playlist_id)
 {
     int ret = 0;
@@ -111,9 +114,12 @@ int mp3_playlist_get(const char * playlist_id)
     char *post_data = NULL;
 
     /* data for post */
-    req_data = cJSON_Parse("{\"id\":\"2819914042\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
-    //req_data = cJSON_Parse("{\"id\":\"2809577409\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
-    //req_data = cJSON_Parse("{\"id\":\"10007604484\",\"offset\":0,\"total\":true,\"limit\":1000,\"n\":1000,\"csrf_token\":\"\"}");
+    req_data = cJSON_CreateObject();
+    cJSON_AddStringToObject(req_data, "id", playlist_id);
+    cJSON_AddNumberToObject(req_data, "offset", 0);
+    cJSON_AddBoolToObject(req_data, "total", true);
+    cJSON_AddNumberToObject(req_data, "limit", 1000);
+    cJSON_AddStringToObject(req_data, "csrf_token", "");
 
     req_weapi = weapi(req_data);
     if (req_data) cJSON_Delete(req_data);
