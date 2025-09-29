@@ -300,20 +300,16 @@ void mp3_network_thread_entry(void *params)
                     {
                         trunc_size = g_content_length;
                     }
-                    /* use user buffer or alloc buffer */
+                    if (session == RT_NULL)
+                    {
+                        /* something wrong, maybe last read failed */
+                        msg.callback(NULL, 0);
+                        break;
+                    }
                     char *content = NULL;
-#if 0
-                    if (msg.user_data)  //use provide buffer
-                    {
-                        content = msg.user_data;
-                    }
-                    else
-#endif
-                    {
-                        content = mp3_mem_malloc(trunc_size + 1);
-                        RT_ASSERT(content);
-                        memset(content, 0, trunc_size + 1);
-                    }
+                    content = mp3_mem_malloc(trunc_size + 1);
+                    RT_ASSERT(content);
+                    memset(content, 0, trunc_size + 1);
                     bytes_read = webclient_read(session, content, trunc_size);
                     g_totol_bytes_read += bytes_read;
                     //RT_ASSERT(bytes_read == trunc_size);
