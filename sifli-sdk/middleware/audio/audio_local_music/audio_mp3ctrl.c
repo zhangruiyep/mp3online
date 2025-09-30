@@ -72,7 +72,7 @@
 #include "mp3dec.h"
 
 #define DBG_TAG           "audio"
-#define DBG_LVL           LOG_LVL_DBG
+#define DBG_LVL           LOG_LVL_INFO
 #include "log.h"
 
 #define MP3_HANDLE_MAGIC        0x33333333
@@ -254,6 +254,7 @@ static int buf_read(mp3ctrl_handle handle, void *buf, int len)
             {
                 /* no more data, we need pause and wait network download */
                 rt_kprintf("%s %d: %d < %d, no more data\n", __func__, __LINE__, read_len, len);
+                len = read_len;
             }
         }
         else
