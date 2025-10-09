@@ -67,7 +67,7 @@ static void lv_music_list_refresh_cb(lv_timer_t * timer)
 
     if (!music_list_is_inited)
     {
-        mp3_playlist_get("9344469550");
+        mp3_playlist_get("2819914042");
         music_list_is_inited = true;
     }
 
