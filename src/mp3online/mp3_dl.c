@@ -52,14 +52,24 @@ static int g_mp3_dl_content_len = 0;
 static int g_mp3_dl_content_pos = 0;
 
 static rt_timer_t g_mp3_dl_start_timer = NULL;
-static mp3_user_cb user_cb = NULL;
+static mp3_user_cb g_user_cb = NULL;
 
 /*  */
 static int mp3_dl_get_part_callback(uint8_t *data, size_t len)
 {
     rt_kprintf("%s %d: len=%d\n", __func__, __LINE__, len);
-    if ((data == NULL) || (len == 0))
+    if ((data == NULL) || (len == 0) || (len > 50*1000*1000))
     {
+        if (g_user_cb)
+        {
+            g_user_cb(-1);
+            g_user_cb = NULL;
+        }
+        if (g_mp3_dl_start_timer)
+        {
+            rt_timer_stop(g_mp3_dl_start_timer);
+        }
+        rt_kprintf("%s %d: input invalid\n", __func__, __LINE__);
         return 0;
     }
 
@@ -69,9 +79,10 @@ static int mp3_dl_get_part_callback(uint8_t *data, size_t len)
     g_mp3_dl_content_len = len;
     g_mp3_dl_content_pos += MP3_RING_BUFFER_SIZE;
     play_ringbuff(g_mp3_dl_content_len);
-    if (user_cb)
+    if (g_user_cb)
     {
-        user_cb(0);
+        g_user_cb(0);
+        g_user_cb = NULL;
     }
     if (g_mp3_dl_start_timer)
     {
@@ -176,12 +187,11 @@ void mp3_stream_pause(void)
 
 void mp3_stream_start_timer_cb(void *parameter)
 {
-    user_cb = (mp3_user_cb)parameter;
-
     rt_kprintf("%s %d: wait dl timeout\n", __func__, __LINE__);
-    if (user_cb)
+    if (g_user_cb)
     {
-        user_cb(-1);
+        g_user_cb(-1);
+        g_user_cb = NULL;
     }
     rt_timer_stop(g_mp3_dl_start_timer);
 }
@@ -194,11 +204,12 @@ void mp3_stream_start(const char *mp3_url, void *user_cb)
         /* can not init mp3 dl, try reboot to recover network */
         drv_reboot();
     }
+    g_user_cb = user_cb;
     if (g_mp3_dl_state == MP3_DL_STATE_INIT)
     {
         if (!g_mp3_dl_start_timer)
         {
-            g_mp3_dl_start_timer = rt_timer_create("mp3start", mp3_stream_start_timer_cb, user_cb,
+            g_mp3_dl_start_timer = rt_timer_create("mp3start", mp3_stream_start_timer_cb, NULL,
                                                 rt_tick_from_millisecond(30000), RT_TIMER_FLAG_SOFT_TIMER | RT_TIMER_FLAG_ONE_SHOT);
         }
         else

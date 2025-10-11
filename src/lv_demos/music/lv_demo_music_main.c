@@ -305,6 +305,7 @@ static const char *g_album_img_file = NULL;
 
 static void mp3_stream_cb(int result)
 {
+    rt_kprintf("%s %d: result: %d\n", __func__, __LINE__, result);
     if (result < 0)
     {
         g_mp3_start_fail = true;
@@ -1062,6 +1063,7 @@ static void timer_cb(lv_timer_t *t)
 #else
     if (g_mp3_start_fail)
     {
+        rt_kprintf("%s %d: start fail, play next\n", __func__, __LINE__);
         _lv_demo_music_album_next(true);
         g_mp3_start_fail = false;
         return;
