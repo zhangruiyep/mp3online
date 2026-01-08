@@ -16,6 +16,7 @@
 #include "assets/spectrum_3.h"
 #include "mp3_playlist.h"
 #include "mp3_jpg.h"
+#include "mp3_lyric.h"
 
 /*********************
  *      DEFINES
@@ -77,6 +78,7 @@ static lv_obj_t *spectrum_obj;
 static lv_obj_t *title_label;
 static lv_obj_t *artist_label;
 //static lv_obj_t *genre_label;
+static lv_obj_t *lyric_label;
 static lv_obj_t *time_obj;
 static lv_obj_t *album_img_obj;
 static lv_obj_t *slider_obj;
@@ -328,6 +330,9 @@ void _lv_demo_music_play(uint32_t id)
 
     g_mp3_play_is_end = false;
     mp3_playlist_get_song_id(track_id, id_str);
+
+    mp3_lyric_get(id_str);
+
     sprintf(url, "http://music.163.com/song/media/outer/url?id=%s.mp3", id_str);
     mp3_stream_start(url, mp3_stream_cb);
 
@@ -518,6 +523,11 @@ static lv_obj_t *create_title_box(lv_obj_t *parent)
     lv_obj_set_style_text_color(genre_label, lv_color_hex(0x8a86b8), 0);
     lv_label_set_text(genre_label, _lv_demo_music_get_genre(track_id));
 #endif
+
+    lyric_label = lv_label_create(cont);
+    lv_obj_set_style_text_font(lyric_label, font_small, 0);
+    lv_obj_set_style_text_color(lyric_label, lv_color_hex(0x504d6d), 0);
+    lv_label_set_text(lyric_label, "");
 
     return cont;
 }
@@ -1091,6 +1101,14 @@ static void timer_cb(lv_timer_t *t)
     }
     lv_label_set_text_fmt(time_obj, "%"LV_PRIu32":%02"LV_PRIu32, g_mp3_play_seconds / 60, g_mp3_play_seconds % 60);
     lv_slider_set_value(slider_obj, g_mp3_play_seconds, LV_ANIM_ON);
+
+    if (g_mp3_play_seconds > 0)
+    {
+        char cur_lyric[128] = {0};
+        mp3_lyric_get_by_time(track_id, g_mp3_play_seconds, cur_lyric);
+        lv_label_set_text(lyric_label, cur_lyric);
+    }
+
     if (g_mp3_play_is_end)  // set by mp3 play thread
     {
         _lv_demo_music_pause();
