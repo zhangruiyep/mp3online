@@ -977,9 +977,19 @@ static lv_obj_t *album_img_create(lv_obj_t *parent)
 
     lv_obj_t *img;
     img = lv_img_create(parent);
+    /* use url filename as local filename */
+    char url[256] = {0};
+    mp3_playlist_get_pic_url(track_id, url);
+    /* find last '/' in url */
+    char *p = strrchr(url, '/');
+    
     char pic_file[32] = {0};
-    sprintf(pic_file, "/mp3_%d.jpg", track_id);
-    if (mp3_img_file_is_ready(pic_file))
+    //sprintf(pic_file, "/mp3_%d.jpg", track_id);
+    if (p)
+    {
+        strcpy(pic_file, p);    //include '/'
+    }
+    if ((strlen(pic_file) > 0) && mp3_img_file_is_ready(pic_file))
     {
         lv_img_set_src(img, pic_file);
         rt_kprintf("%s %d: set img file %s\n", __func__, __LINE__, pic_file);
@@ -989,14 +999,12 @@ static lv_obj_t *album_img_create(lv_obj_t *parent)
         /* default img */
         lv_img_set_src(img, &img_hope_cover);
         rt_kprintf("%s %d: set default img file\n", __func__, __LINE__);
-    }
-    /* update album cover */
-    char url[256] = {0};
-    mp3_playlist_get_pic_url(track_id, url);
-    if (strlen(url) > strlen("http://"))
-    {
-        sprintf(url, "%s?param=140y140", url);  //specific size
-        mp3_dl_img(url, pic_file, mp3_img_download_callback);
+        /* update album cover */
+        if (strlen(url) > strlen("http://"))
+        {
+            sprintf(url, "%s?param=140y140", url);  //specific size
+            mp3_dl_img(url, pic_file, mp3_img_download_callback);
+        }
     }
     /* cut to round */
     lv_obj_set_style_radius(img, LV_RADIUS_CIRCLE, 0);
