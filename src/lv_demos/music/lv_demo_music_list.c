@@ -55,6 +55,7 @@ static lv_timer_t* list_refresh_timer = NULL;
 extern bool mp3_network_is_connected(void);
 extern int mp3_playlist_get(const char * playlist_id);
 extern int mp3_playlist_get_count(void);
+extern void delete_old_jpg_files(void);
 static bool music_list_is_inited = false;
 //static int music_list_count = 0;
 int music_list_count = 0;
@@ -86,6 +87,8 @@ static void lv_music_list_refresh_cb(lv_timer_t * timer)
     #endif
 
         music_list_count = count;
+
+        delete_old_jpg_files();
         /* auto play the first song */
         _lv_demo_music_play(0);
     }

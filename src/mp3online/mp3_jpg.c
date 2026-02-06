@@ -126,6 +126,58 @@ int mp3_dl_img(const char *url, const char *filename, mp3_dl_img_user_callback c
     return ret;
 }
 
+
+#define ROOT_DIR "/"
+#define JPG_EXTENSION ".jpg"
+#define SECONDS_IN_DAY (24 * 60 * 60)
+#define DAYS_THRESHOLD 15
+
+void delete_old_jpg_files(void) {
+    DIR *dir;
+    struct dirent *entry;
+    struct stat file_stat;
+    time_t current_time = time(NULL);
+    time_t threshold_time = current_time - (DAYS_THRESHOLD * SECONDS_IN_DAY);
+
+    // Open the root directory
+    dir = opendir(ROOT_DIR);
+    if (dir == NULL) {
+        // Handle error: unable to open directory
+        return;
+    }
+
+    // Iterate through directory entries
+    while ((entry = readdir(dir)) != NULL) {
+        // Check if the entry is a regular file and has .jpg extension
+        if (entry->d_type == DT_REG) {
+            char filepath[256];
+            snprintf(filepath, sizeof(filepath), "%s%s", ROOT_DIR, entry->d_name);
+            //rt_kprintf("%s: checking %s\n", __func__, filepath);
+
+            // Check if the file ends with .jpg
+            if (strlen(entry->d_name) > 4 &&
+                strcmp(entry->d_name + strlen(entry->d_name) - 4, JPG_EXTENSION) == 0) {
+
+                // Get file metadata
+                if (stat(filepath, &file_stat) == 0) {
+                    // Check if the file is older than n days
+                    if (file_stat.st_mtime < threshold_time) {
+                        rt_kprintf("%s: deleting %s\n", __func__, filepath);
+                        // Delete the file
+                        if (unlink(filepath) != 0) {
+                            // Handle error: unable to delete file
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Close the directory
+    closedir(dir);
+}
+
+#ifdef JPG_TEST
 static lv_timer_t* pic_refresh_timer = NULL;
 static void lv_pic_refresh_cb(lv_timer_t * timer)
 {
@@ -160,4 +212,5 @@ static void mp3_jpg(int argc, char **argv)
     lv_img_set_url(RT_NULL, JPG_URL);
 }
 MSH_CMD_EXPORT(mp3_jpg, MP3 jpg test)
+#endif
 #endif
