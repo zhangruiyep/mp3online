@@ -93,7 +93,7 @@ static int mp3_dl_get_part_callback(uint8_t *data, size_t len)
 
 static int mp3_dl_get_part_continue_callback(uint8_t *data, size_t len)
 {
-    rt_kprintf("%s %d: len=%d\n", __func__, __LINE__, len);
+    //rt_kprintf("%s %d: len=%d\n", __func__, __LINE__, len);
     if ((data == NULL) || (len == 0))
     {
         return 0;
@@ -103,7 +103,7 @@ static int mp3_dl_get_part_continue_callback(uint8_t *data, size_t len)
 
     g_mp3_dl_state = MP3_DL_STATE_DLING;
     g_mp3_dl_content_pos += len;
-    rt_kprintf("%s %d: g_mp3_dl_content_pos=%d\n", __func__, __LINE__, g_mp3_dl_content_pos);
+    //rt_kprintf("%s %d: g_mp3_dl_content_pos=%d\n", __func__, __LINE__, g_mp3_dl_content_pos);
     if (g_mp3_dl_content_pos >= g_mp3_dl_content_len)
     {
         /* download done */
@@ -115,7 +115,7 @@ static int mp3_dl_get_part_continue_callback(uint8_t *data, size_t len)
 
 void mp3_dl_read_more(int read_pos)
 {
-    rt_kprintf("%s %d: read_pos=%d\n", __func__, __LINE__, read_pos);
+    //rt_kprintf("%s %d: read_pos=%d\n", __func__, __LINE__, read_pos);
     if (g_mp3_dl_state == MP3_DL_STATE_IDLE)
     {
         rt_kprintf("%s %d: no more data\n", __func__, __LINE__);
@@ -128,9 +128,9 @@ void mp3_dl_read_more(int read_pos)
     {
         int ring_space = mp3_ring_buffer_space_len();
         int last = g_mp3_dl_content_len - g_mp3_dl_content_pos;
-        rt_kprintf("%s %d: last=%d\n", __func__, __LINE__, last);
+        //rt_kprintf("%s %d: last=%d\n", __func__, __LINE__, last);
         int dl_len = MIN(ring_space, last);
-        rt_kprintf("%s %d: dl_len=%d\n", __func__, __LINE__, dl_len);
+        //rt_kprintf("%s %d: dl_len=%d\n", __func__, __LINE__, dl_len);
         mp3_network_get_part_continue(dl_len, mp3_dl_get_part_continue_callback);
     }
 }

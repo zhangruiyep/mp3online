@@ -8,11 +8,58 @@
 #include "mp3_ne_url.h"
 #include "mp3_mem.h"
 #include "mp3_network.h"
+#ifdef RT_USING_DFS
+#include <dfs_posix.h>
+#endif
 
 extern cJSON *mp3_cust_list_get(void);
 extern void mp3_playlist_get_song_id(int index, char *id);
 
 static char cur_track_id[32] = {0};
+
+#ifdef RT_USING_DFS
+static int mp3_lyric_save(const char *track_id, cJSON *lyric)
+{
+    char filename[32] = {0};
+    snprintf(filename, sizeof(filename), "/lyric_%s.json", track_id);
+
+    char *json_str = cJSON_Print(lyric);
+    if (json_str == NULL)
+    {
+        return -1;
+    }
+
+    /* check file exist */
+    struct stat st = {0};
+    int ret = stat(filename, &st);
+    if (ret == 0)
+    {
+        if ((st.st_size > 0) && (strlen(json_str) == st.st_size))
+        {
+            rt_kprintf("%s: file %s already exist, skip write\n", __func__, filename);
+            return 0;
+        }
+    }
+
+    int fd;
+    fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, 0);
+    if (fd >= 0)
+    {
+        write(fd, json_str, strlen(json_str));
+        close(fd);
+        rt_kprintf("%s: write %s %d bytes OK\n", __func__, filename, strlen(json_str));
+        ret = 0;
+    }
+    else
+    {
+        rt_kprintf("%s: open file %s failed!\n", __func__, filename);
+        ret = -1;
+    }
+
+    cJSON_free(json_str);
+    return ret;
+}
+#endif
 
 static int mp3_lyric_get_data(cJSON *json)
 {
@@ -21,6 +68,11 @@ static int mp3_lyric_get_data(cJSON *json)
 
     cJSON *lrc_lyric = cJSON_GetObjectItem(cJSON_GetObjectItem(json, "lrc"), "lyric");
     RT_ASSERT(lrc_lyric);
+
+#ifdef RT_USING_DFS
+    /* save to flash */
+    mp3_lyric_save(cur_track_id, lrc_lyric);
+#endif
 
     //rt_kprintf("%s: lyric=%s\n", __func__, cJSON_GetStringValue(lrc_lyric));
 
@@ -124,21 +176,21 @@ int mp3_lyric_get_by_time(int index, uint32_t secs, char *lyric_line)
     while (p && (*p != '\0'))
     {
         char *time_s = strstr(p, "[");
-        rt_kprintf("%s: [ at %x\n", __func__, time_s);
+        //rt_kprintf("%s: [ at %x\n", __func__, time_s);
         if (time_s)
         {
             char *time_e = strstr(time_s, "]");
-            rt_kprintf("%s: ] at %x\n", __func__, time_e);
+            //rt_kprintf("%s: ] at %x\n", __func__, time_e);
             if (time_e)
             {
                 int min, sec, ms = 0;
                 sscanf(time_s, "[%d:%d.%d]", &min, &sec, &ms);
                 uint32_t time = min * 60 + sec;
-                rt_kprintf("%s: time=%d\n", __func__, time);
+                //rt_kprintf("%s: time=%d\n", __func__, time);
                 if (time <= secs)
                 {
                     char *lyric_e = strstr(time_e, "\n");
-                    rt_kprintf("%s: newline at %x\n", __func__, lyric_e);
+                    //rt_kprintf("%s: newline at %x\n", __func__, lyric_e);
                     strncpy(lyric_line, time_e + 1, lyric_e - (time_e + 1));
                     lyric_refreshed = true;
                     last_lyric = time_e + 1;
