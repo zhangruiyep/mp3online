@@ -21,11 +21,17 @@ ringbuffer大小默认16KB。buffer越大，网络不稳定导致卡顿的概率
 
 ## 工程编译及下载：
 **注意：如遇编译不通过，请重点看此节说明。**
-
+### release/v2.4分支：
 - 本项目使用的sifli-sdk版本为release/v2.4分支的v2.4.2。
+- menuconfig选择sdk版本2.4。
 - 本项目的sifli-sdk目录下是需要修改的文件，可自行与完整的sifli-sdk对比合入。
 - 由于sifli-sdk MP3播放的BUFFER是完整的文件，不支持边下载边播放，因此修改了部分文件，用于支持ringbuffer方式播放。主要修改了audio_mp3ctrl.c文件，可以搜索MP3_RINGBUFF宏定义，比较修改点合入。
 - 由于sifli-sdk 默认不支持动态下载的jpeg图片解码。因此修改了lv_gpu.c文件，可以搜索LV_GPU_SOFT_DECODER宏定义，比较修改点合入。
+
+### release/v2.5分支：
+- menuconfig选择sdk版本2.5。
+- sifli-sdk目录下的修改，sifli官方已合入到release/v2.5分支，无需再手动对比修改。
+- release/v2.5分支的example/mp3online目录下是本项目的核心功能，可直接编译。具体差异可自行对比。
 
 具体编译下载方法参考sifli-sdk其它示例工程，所需文件在project目录下。
 

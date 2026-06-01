@@ -26,8 +26,14 @@ extern void mp3_dl_read_more(int read_pos);
 
 #define FS_ROOT "root"
 
+#if SOLUTION_VERSION_2_5
+#ifndef AUDIO_MP3_RINGBUFF_SUPPORT
+    #error "Need enable MP3 ringbuff for stream play."
+#endif
+#else
 #ifndef MP3_RINGBUFF
     #error "Need enable MP3 ringbuff for stream play."
+#endif
 #endif
 
 /**
