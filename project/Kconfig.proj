@@ -12,23 +12,23 @@ config ENABLE_DFU
     bool "enable dfu and add dfu sub-project"
 	default n
 
-choice SOLUTION_VERSION
-    prompt "SIFLI Solution version"
-    default SOLUTION_VERSION_2_5
-    config SOLUTION_VERSION_2_5
+choice SDK_VERSION
+    prompt "SIFLI SDK version"
+    default SDK_VERSION_2_5
+    config SDK_VERSION_2_5
         bool "2.5"
-    config SOLUTION_VERSION_2_4
+    config SDK_VERSION_2_4
         bool "2.4"
 endchoice
 
 config MP3_RINGBUFF
     bool "enable mp3 ringbuff for stream download and play"
-    depends on AUDIO_LOCAL_MUSIC && !SOLUTION_VERSION_2_5
+    depends on AUDIO_LOCAL_MUSIC && !SDK_VERSION_2_5
     default y
 
 config LV_GPU_SOFT_DECODER
     bool "enable software decoder for jpeg dynamic load"
-    depends on !SOLUTION_VERSION_2_5
+    depends on !SDK_VERSION_2_5
     default y
 
 config WEBCLIENT_DEBUG
