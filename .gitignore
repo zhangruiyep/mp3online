@@ -57,3 +57,4 @@ build_*/
 Kconfig.tmp
 .vscode/
 .tongyiignore
+.trae/

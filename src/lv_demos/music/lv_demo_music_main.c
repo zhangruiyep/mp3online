@@ -11,10 +11,8 @@
 #if LV_USE_DEMO_MUSIC
 
 #include "lv_demo_music_list.h"
-#include "assets/spectrum_1.h"
-#include "assets/spectrum_2.h"
-#include "assets/spectrum_3.h"
 #include "mp3_playlist.h"
+#include "audio_server.h"
 #include "mp3_jpg.h"
 #include "mp3_lyric.h"
 
@@ -36,8 +34,10 @@
 #define BAR_COLOR3_STOP     (2 * LV_HOR_RES / 3)
 #define BAR_CNT             20
 #define DEG_STEP            (180/BAR_CNT)
-#define BAND_CNT            4
-#define BAR_PER_BAND_CNT    (BAR_CNT / BAND_CNT)
+
+#define PCM_VOLUME_SCALE    384
+
+#define PCM_SHIFT_DIV       100
 
 /**********************
  *      TYPEDEFS
@@ -55,6 +55,7 @@ static lv_obj_t *create_ctrl_box(lv_obj_t *parent);
 static lv_obj_t *create_handle(lv_obj_t *parent);
 
 static void spectrum_anim_cb(void *a, int32_t v);
+static void pcm_volume_callback(const int16_t *data, uint32_t len, audio_parameter_t *param);
 static void start_anim_cb(void *a, int32_t v);
 static void spectrum_draw_event_cb(lv_event_t *e);
 static lv_obj_t *album_img_create(lv_obj_t *parent);
@@ -82,10 +83,8 @@ static lv_obj_t *lyric_label;
 static lv_obj_t *time_obj;
 static lv_obj_t *album_img_obj;
 static lv_obj_t *slider_obj;
-static uint32_t spectrum_i = 0;
-static uint32_t spectrum_i_pause = 0;
-static uint32_t bar_ofs = 0;
-static uint32_t spectrum_lane_ofs_start = 0;
+static uint16_t waterfall_bars[BAR_CNT];
+static uint32_t waterfall_frac;
 static uint32_t bar_rot = 0;
 static uint32_t time_act;
 static lv_timer_t   *sec_counter_timer;
@@ -98,8 +97,6 @@ static bool playing;
 static bool start_anim;
 static lv_coord_t start_anim_values[40];
 static lv_obj_t *play_obj;
-static const uint16_t (* spectrum)[4];
-static uint32_t spectrum_len;
 static const uint16_t rnd_array[30] = {994, 285, 553, 11, 792, 707, 966, 641, 852, 827, 44, 352, 146, 581, 490, 80, 729, 58, 695, 940, 724, 561, 124, 653, 27, 292, 557, 506, 382, 199};
 
 extern bool g_mp3_play_is_end;
@@ -342,17 +339,18 @@ void _lv_demo_music_play(uint32_t id)
 void _lv_demo_music_resume(void)
 {
     playing = true;
-    spectrum_i = spectrum_i_pause;
     lv_anim_t a;
     lv_anim_init(&a);
-    lv_anim_set_values(&a, spectrum_i, spectrum_len - 1);
+    lv_anim_set_values(&a, 0, 1000);
     lv_anim_set_exec_cb(&a, spectrum_anim_cb);
     lv_anim_set_var(&a, spectrum_obj);
-    lv_anim_set_time(&a, ((spectrum_len - spectrum_i) * 1000) / 30);
+    lv_anim_set_time(&a, 1000);
     lv_anim_set_playback_time(&a, 0);
     lv_anim_set_ready_cb(&a, spectrum_end_cb);
     lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
     lv_anim_start(&a);
+
+    audio_set_pcm_callback(pcm_volume_callback);
 
     lv_timer_resume(sec_counter_timer);
     /* track len may be 0 if mp3 dl not started yet */
@@ -375,9 +373,8 @@ void _lv_demo_music_resume(void)
 void _lv_demo_music_pause(void)
 {
     playing = false;
-    spectrum_i_pause = spectrum_i;
-    spectrum_i = 0;
     lv_anim_del(spectrum_obj, spectrum_anim_cb);
+    audio_set_pcm_callback(NULL);
     lv_obj_invalidate(spectrum_obj);
     lv_img_set_zoom(album_img_obj, LV_IMG_ZOOM_NONE);
     lv_timer_pause(sec_counter_timer);
@@ -681,11 +678,15 @@ static lv_obj_t *create_handle(lv_obj_t *parent)
 
 static void track_load(uint32_t id)
 {
-    spectrum_i = 0;
     time_act = 0;
-    spectrum_i_pause = 0;
     lv_slider_set_value(slider_obj, 0, LV_ANIM_OFF);
     lv_label_set_text(time_obj, "0:00");
+
+    {
+        uint32_t i;
+        for (i = 0; i < BAR_CNT; i++) waterfall_bars[i] = 0;
+        waterfall_frac = 0;
+    }
 
     //if (id == track_id) return;   //always refresh
     bool next = false;
@@ -818,67 +819,33 @@ static void spectrum_draw_event_cb(lv_event_t *e)
         lv_draw_rect_dsc_init(&draw_dsc);
         draw_dsc.bg_opa = LV_OPA_COVER;
 
-        uint16_t r[64];
         uint32_t i;
-
-        lv_coord_t min_a = 5;
 #if LV_DEMO_MUSIC_LARGE == 0
         lv_coord_t r_in = 77;
 #else
         lv_coord_t r_in = 160;
 #endif
         r_in = (r_in * lv_img_get_zoom(album_img_obj)) >> 8;
-        for (i = 0; i < BAR_CNT; i++) r[i] = r_in + min_a;
 
-        uint32_t s;
-        for (s = 0; s < 4; s++)
-        {
-            uint32_t f;
-            uint32_t band_w = 0;    /*Real number of bars in this band.*/
-            switch (s)
-            {
-            case 0:
-                band_w = 20;
-                break;
-            case 1:
-                band_w = 8;
-                break;
-            case 2:
-                band_w = 4;
-                break;
-            case 3:
-                band_w = 2;
-                break;
-            }
-
-            /* Add "side bars" with cosine characteristic.*/
-            for (f = 0; f < band_w; f++)
-            {
-                uint32_t ampl_main = spectrum[spectrum_i][s];
-                int32_t ampl_mod = get_cos(f * 360 / band_w + 180, 180) + 180;
-                int32_t t = BAR_PER_BAND_CNT * s - band_w / 2 + f;
-                if (t < 0) t = BAR_CNT + t;
-                if (t >= BAR_CNT) t = t - BAR_CNT;
-                r[t] += (ampl_main * ampl_mod) >> 9;
-            }
-        }
-
-        uint32_t amax = 20;
-        int32_t animv = spectrum_i - spectrum_lane_ofs_start;
-        if (animv > amax) animv = amax;
         for (i = 0; i < BAR_CNT; i++)
         {
             uint32_t deg_space = 1;
             uint32_t deg = i * DEG_STEP + 90;
-            uint32_t j = (i + bar_rot + rnd_array[bar_ofs % 10]) % BAR_CNT;
-            uint32_t k = (i + bar_rot + rnd_array[(bar_ofs + 1) % 10]) % BAR_CNT;
 
-            uint32_t v = (r[k] * animv + r[j] * (amax - animv)) / amax;
+            uint32_t v;
             if (start_anim)
             {
                 v = r_in + start_anim_values[i];
                 deg_space = v >> 7;
                 if (deg_space < 1) deg_space = 1;
+            }
+            else
+            {
+                uint32_t idx = (i + bar_rot) % BAR_CNT;
+                uint32_t next_idx = (idx + 1) % BAR_CNT;
+                uint32_t bar_h = (waterfall_bars[idx] * (PCM_SHIFT_DIV - waterfall_frac) +
+                                  waterfall_bars[next_idx] * waterfall_frac) / PCM_SHIFT_DIV;
+                v = r_in + bar_h;
             }
 
             if (v < BAR_COLOR1_STOP) draw_dsc.bg_color = BAR_COLOR1;
@@ -927,31 +894,41 @@ static void spectrum_anim_cb(void *a, int32_t v)
         return;
     }
 
-    //spectrum_i = v;
-    spectrum_i = v % spectrum_len;
-    lv_obj_invalidate(obj);
+    bar_rot++;
+}
 
-    static uint32_t bass_cnt = 0;
-    static int32_t last_bass = -1000;
-    static int32_t dir = 1;
-    if (spectrum[spectrum_i][0] > 12)
+static void pcm_volume_callback(const int16_t *data, uint32_t len, audio_parameter_t *param)
+{
+    (void)param;
+    if (!playing) return;
+    if (len == 0 || data == NULL) return;
+
+    uint32_t sum = 0;
+    uint32_t i;
+    uint32_t sample_count = len / sizeof(int16_t);
+    for (i = 0; i < sample_count; i++)
     {
-        if (spectrum_i - last_bass > 5)
-        {
-            bass_cnt++;
-            last_bass = spectrum_i;
-            if (bass_cnt >= 2)
-            {
-                bass_cnt = 0;
-                spectrum_lane_ofs_start = spectrum_i;
-                bar_ofs++;
-            }
-        }
+        if (data[i] >= 0)
+            sum += data[i];
+        else
+            sum += -data[i];
     }
-    if (spectrum[spectrum_i][0] < 4) bar_rot += dir;
-#if ENABLE_IMG_ZOOM
-    lv_img_set_zoom(album_img_obj, LV_IMG_ZOOM_NONE + spectrum[spectrum_i][0]);
-#endif
+    uint32_t avg = sum / sample_count;
+
+    uint32_t bar_val = avg / PCM_VOLUME_SCALE;
+    waterfall_bars[BAR_CNT - 1] = (uint16_t)bar_val;
+
+    waterfall_frac++;
+    if (waterfall_frac >= PCM_SHIFT_DIV)
+    {
+        for (i = 0; i < BAR_CNT - 1; i++)
+        {
+            waterfall_bars[i] = waterfall_bars[i + 1];
+        }
+        waterfall_frac = 0;
+    }
+
+    lv_obj_invalidate(spectrum_obj);
 }
 
 static void start_anim_cb(void *a, int32_t v)
@@ -1010,21 +987,6 @@ static lv_obj_t *album_img_create(lv_obj_t *parent)
     lv_obj_set_style_radius(img, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_clip_corner(img, true, 0);
 
-    switch (track_id % 3)
-    {
-    case 2:
-        spectrum = spectrum_3;
-        spectrum_len = sizeof(spectrum_3) / sizeof(spectrum_3[0]);
-        break;
-    case 1:
-        spectrum = spectrum_2;
-        spectrum_len = sizeof(spectrum_2) / sizeof(spectrum_2[0]);
-        break;
-    case 0:
-        spectrum = spectrum_1;
-        spectrum_len = sizeof(spectrum_1) / sizeof(spectrum_1[0]);
-        break;
-    }
     lv_img_set_antialias(img, false);
     lv_obj_align(img, LV_ALIGN_CENTER, 0, 0);
     lv_obj_add_event_cb(img, album_gesture_event_cb, LV_EVENT_GESTURE, NULL);
